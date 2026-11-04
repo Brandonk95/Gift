@@ -1,5 +1,6 @@
 # ---------------------------------------------------------------- frontend
-FROM node:22-alpine AS web
+# built once on the build machine (the output is plain files), even for other CPU types
+FROM --platform=$BUILDPLATFORM node:22-alpine AS web
 WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN npm ci

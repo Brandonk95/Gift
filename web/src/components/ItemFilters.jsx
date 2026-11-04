@@ -26,14 +26,17 @@ function matches(item, q, categoryMap) {
 }
 
 // Search, category chips, sort and layout shared by the editor and the friend view.
-export function useItemFilters(items, categoryMap, { hidePrice = false, defaultSort = "custom" } = {}) {
+// `friendView`: the layout the list's owner picked for friends. Friends start there
+// and can switch, without changing their own saved preference.
+export function useItemFilters(items, categoryMap, { hidePrice = false, defaultSort = "custom", friendView = "" } = {}) {
   const { prefs, setPrefs } = useApp();
   const [cat, setCat] = useState("all");
   const [sort, setSort] = useState(defaultSort);
   const [query, setQuery] = useState("");
   // the layout toggle updates your saved preference, so it sticks everywhere
-  const activeView = prefs.view;
-  const setView = (view) => setPrefs({ view });
+  const [localView, setLocalView] = useState("");
+  const activeView = localView || friendView || prefs.view;
+  const setView = (view) => (friendView ? setLocalView(view) : setPrefs({ view }));
 
   const usedCategories = useMemo(() => {
     const ids = [...new Set(items.map((i) => i.category || ""))];

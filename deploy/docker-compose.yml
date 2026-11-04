@@ -1,0 +1,40 @@
+# docker-compose.yml for your server: runs the image GitHub builds, instead of
+# building it on the server. Put this file and your .env in one folder (e.g.
+# ~/giftme), replace OWNER/REPO below with your GitHub name and repo (lowercase),
+# then: docker compose up -d
+#
+# Update by hand:  docker compose pull && docker compose up -d   (or ./update.sh)
+# Or automatically: start with the Watchtower profile (see the bottom of this file):
+#   docker compose --profile autoupdate up -d
+services:
+  giftlist:
+    image: ghcr.io/OWNER/REPO:latest
+    container_name: giftlist
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8090}:8090"
+    env_file:
+      - .env
+    volumes:
+      - giftlist_data:/pb/pb_data
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  # Optional: checks for a new image every 30 minutes and restarts the app with it.
+  # Only touches containers labelled above. For a private image, run
+  # `docker login ghcr.io` on the server first (see DEPLOY.md); Watchtower reuses it.
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: giftlist-watchtower
+    restart: unless-stopped
+    profiles: ["autoupdate"]
+    environment:
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_POLL_INTERVAL=1800
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.docker/config.json:/config.json:ro
+
+volumes:
+  giftlist_data:

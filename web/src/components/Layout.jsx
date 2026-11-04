@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ChevronDown, Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun, UserRound } from "lucide-react";
 import { pb } from "../lib/pb.js";
@@ -9,12 +10,20 @@ function isDark(mode) {
   return mode === "dark";
 }
 
+// Uploaded picture first, then the person's Gravatar (if they have one), then
+// their initial. d=404 makes Gravatar answer "not found" instead of a stock image.
+export function gravatarUrl(user, px) {
+  return user?.email_hash ? `https://gravatar.com/avatar/${user.email_hash}?s=${px}&d=404` : "";
+}
+
 export function Avatar({ user, size = 32 }) {
   const initial = (user?.name || user?.email || "?").trim()[0]?.toUpperCase();
-  const src = user?.avatar ? pb.files.getURL(user, user.avatar, { thumb: "100x100" }) : "";
+  const gravatar = gravatarUrl(user, Math.min(512, Math.round(size * 2)));
+  const [missing, setMissing] = useState(""); // the Gravatar address that came back empty
+  const src = user?.avatar ? pb.files.getURL(user, user.avatar, { thumb: "100x100" }) : gravatar !== missing ? gravatar : "";
   return (
     <span className="avatar" style={{ width: size, height: size, fontSize: size * 0.42 }}>
-      {src ? <img src={src} alt="" /> : initial}
+      {src ? <img src={src} alt="" referrerPolicy="no-referrer" onError={() => !user?.avatar && setMissing(gravatar)} /> : initial}
     </span>
   );
 }

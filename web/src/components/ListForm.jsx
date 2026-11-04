@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, Lock, X } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { EmojiPicker, Switch, Swatches } from "./ui.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { OCCASIONS, dateOnly, occasion } from "../lib/format.js";
-import { LIST_COLORS } from "../lib/theme.js";
+import { LIST_COLORS, VIEWS } from "../lib/theme.js";
+import { OCCASION_THEME, THEMES, coverProps, listCover } from "../lib/themes.js";
 import { useApp } from "../lib/app.jsx";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "NZD", "JPY", "CHF", "SEK", "NOK", "DKK", "PLN", "MXN", "BRL", "INR", "ZAR"];
@@ -23,7 +25,12 @@ export default function ListForm({ list, onClose, onSaved }) {
     hide_reservers: !!list?.hide_reservers,
     reveal_givers: !!list?.reveal_givers,
     archived: !!list?.archived,
+    theme: list?.theme || "",
+    friend_view: list?.friend_view || "",
+    private: !!list?.private,
   });
+  const [coverFile, setCoverFile] = useState(null); // a new photo to upload
+  const [removeCover, setRemoveCover] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm({ ...form, [k]: e?.target ? e.target.value : e });
@@ -39,6 +46,8 @@ export default function ListForm({ list, onClose, onSaved }) {
       emoji: form.emoji.trim(),
       event_date: form.event_date ? `${form.event_date} 12:00:00.000Z` : "",
     };
+    if (coverFile) body.cover = coverFile;
+    else if (removeCover) body.cover = null;
     try {
       const saved = list ? await pb.collection("lists").update(list.id, body) : await pb.collection("lists").create({ ...body, owner: user.id });
       onSaved(saved);
@@ -86,10 +95,54 @@ export default function ListForm({ list, onClose, onSaved }) {
           <EmojiPicker value={form.emoji} onChange={set("emoji")} />
           <span className="label-text">Color</span>
           <Swatches value={form.color} onChange={set("color")} colors={LIST_COLORS} allowNone />
+          <span className="label-text">
+            Banner <span className="muted">(the top of your list, the first thing friends see)</span>
+          </span>
+          <BannerPicker
+            list={list}
+            occasionKey={form.occasion}
+            theme={form.theme}
+            onTheme={(t) => {
+              setForm({ ...form, theme: t });
+              setCoverFile(null);
+              if (list?.cover) setRemoveCover(true);
+            }}
+            coverFile={coverFile}
+            hasSavedCover={!!list?.cover && !removeCover}
+            onPhoto={(f) => {
+              setCoverFile(f);
+              setRemoveCover(false);
+            }}
+            onRemovePhoto={() => {
+              setCoverFile(null);
+              setRemoveCover(true);
+            }}
+          />
         </div>
 
         <div className="form-section">
           <h3 className="form-section-title">Sharing & privacy</h3>
+          <Switch
+            checked={form.private}
+            onChange={set("private")}
+            label={
+              <>
+                <Lock size={13} /> Private ideas board
+              </>
+            }
+            hint="Only you can see it, and it has no share link. Collect ideas here, then move gifts to a real list when you're ready."
+          />
+          <label>
+            Friends see gifts as
+            <select value={form.friend_view} onChange={set("friend_view")}>
+              <option value="">Their own choice</option>
+              {Object.entries(VIEWS).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <Switch
             checked={form.hide_prices}
             onChange={set("hide_prices")}
@@ -133,5 +186,71 @@ export default function ListForm({ list, onClose, onSaved }) {
         </div>
       </form>
     </Modal>
+  );
+}
+
+// Banner choice: none, a theme (the occasion's own first), or your own photo
+function BannerPicker({ list, occasionKey, theme, onTheme, coverFile, hasSavedCover, onPhoto, onRemovePhoto }) {
+  const fileRef = useRef(null);
+  const [preview, setPreview] = useState("");
+  useEffect(() => {
+    if (!coverFile) return setPreview("");
+    const url = URL.createObjectURL(coverFile);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [coverFile]);
+
+  const photo = preview || (hasSavedCover ? listCover({ ...list, theme: "" }, "600x200")?.image : "");
+  const suggested = OCCASION_THEME[occasionKey];
+  const order = Object.keys(THEMES).sort((a, b) => (a === suggested ? -1 : b === suggested ? 1 : 0));
+
+  return (
+    <div className="banner-picker">
+      <button type="button" className={`banner-tile banner-none ${!photo && !theme ? "active" : ""}`} onClick={() => onTheme("")} aria-pressed={!photo && !theme}>
+        <span className="banner-tile-art" />
+        <span className="banner-tile-label">None</span>
+      </button>
+      {order.map((t) => {
+        const p = coverProps({ theme: t }, "banner-tile-art");
+        const on = !photo && theme === t;
+        return (
+          <button key={t} type="button" className={`banner-tile ${on ? "active" : ""}`} onClick={() => onTheme(t)} title={THEMES[t].hint} aria-pressed={on}>
+            <span {...p} />
+            <span className="banner-tile-label">
+              {THEMES[t].label}
+              {t === suggested && <span className="muted"> · suggested</span>}
+            </span>
+          </button>
+        );
+      })}
+      <div className={`banner-tile banner-photo ${photo ? "active" : ""}`}>
+        <button type="button" className="banner-photo-btn" onClick={() => fileRef.current?.click()}>
+          {photo ? <span className="banner-tile-art cover-photo" style={{ backgroundImage: `url("${photo}")` }} /> : (
+            <span className="banner-tile-art banner-upload">
+              <ImagePlus size={18} />
+            </span>
+          )}
+          <span className="banner-tile-label">{photo ? "Your photo · change" : "Your photo"}</span>
+        </button>
+        {photo && (
+          <button type="button" className="banner-remove" onClick={onRemovePhoto} aria-label="Remove photo" title="Remove photo">
+            <X size={13} />
+          </button>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+          hidden
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (!f) return;
+            if (f.size > 5 * 1024 * 1024) return alert("That photo is over 5 MB. Pick a smaller one.");
+            onPhoto(f);
+          }}
+        />
+      </div>
+    </div>
   );
 }

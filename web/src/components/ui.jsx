@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { LayoutGrid, List, MoreHorizontal, Rows3, Search, X } from "lucide-react";
+import { LayoutDashboard, LayoutGrid, List, MoreHorizontal, Rows3, Search, X } from "lucide-react";
 import { VIEWS } from "../lib/theme.js";
 
 // Small dropdown menu. items: [{ label, icon: Component, onClick, danger, hidden, divider }]
@@ -122,7 +122,7 @@ export function Segmented({ value, onChange, options, size, ariaLabel }) {
   );
 }
 
-const VIEW_ICONS = { grid: LayoutGrid, compact: Rows3, list: List };
+const VIEW_ICONS = { grid: LayoutGrid, compact: Rows3, list: List, board: LayoutDashboard };
 
 export function ViewToggle({ value, onChange }) {
   const opts = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, { ...v, icon: VIEW_ICONS[k], text: false }]));

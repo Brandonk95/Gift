@@ -211,6 +211,9 @@ routerAdd(
     if (list.getString("owner") !== e.auth.id) {
       throw new ForbiddenError("You can only send invitations for lists you own.");
     }
+    if (list.getBool("private")) {
+      throw new BadRequestError("This is a private ideas board, so it can't be shared. Turn off “Private ideas board” in the list settings first.");
+    }
 
     const body = e.requestInfo().body || {};
     const emails = u.parseEmails(body.emails, 25);

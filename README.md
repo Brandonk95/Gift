@@ -32,7 +32,14 @@ the surprise is kept.
 - Categories: 10 built-in ones plus your own custom categories (with emoji)
 - Search, filter by category, and sort by your own order (drag to reorder), priority, price, name or newest
 - Quick-add bar: type a gift name and press Enter, or paste a link to autofill it
-- Card, compact and list layouts
+- Card, compact, list and **board** layouts (board shows whole pictures in staggered
+  columns, still in your order). Owners can pick the layout friends see first.
+- **List banners**: a themed banner (Winter, Party, Little one, Love, Garden, Starry
+  night) or your own photo across the top of the list, also shown on dashboard cards
+- **Private ideas boards**: lists only you can see, with no working share link, for gifts
+  you're still deciding on. Move ideas to a real list when you're sure.
+- **Getting started guide** on the dashboard for new accounts (make a list, add a gift,
+  share it), which disappears when done or dismissed
 - Star gifts as "most wanted"; add size and color/variant details
 - Mark gifts as **received** (hidden from friends); move or copy gifts between lists;
   duplicate whole lists (e.g. reuse last year's); archive old lists
@@ -42,9 +49,9 @@ the surprise is kept.
 - Export a list to CSV or print it
 - **Appearance settings** saved to your account: light/dark/system theme, accent color,
   font, corner style and default layout
-- Profile picture, password change and self-service account deletion
-- Share with a private link (copy, text, WhatsApp, native share sheet) or **email
-  invitations** straight from the app. Reset the link at any time to revoke access.
+- Profile picture (or your Gravatar, if you haven't uploaded one), password change and self-service account deletion
+- Share with a private link (copy, text, WhatsApp, native share sheet), a downloadable
+  **QR code** for printed invitations, or **email invitations** straight from the app. Reset the link at any time to revoke access.
 - Friends can view without an account, and **reserve or chip in without one too**: they
   give their name and email, and confirm with a 6-digit code we email them (no password,
   no app). Under the hood that's a light "guest" account, which they can turn into a normal
@@ -97,6 +104,8 @@ the surprise is kept.
   can set it.
 
 ## Quick start (Docker)
+
+Putting it on a server with easy updates: see **[DEPLOY.md](DEPLOY.md)**.
 
 ```bash
 cp .env.example .env      # then edit .env
@@ -250,8 +259,8 @@ web/                      React frontend (Vite)
 
 | Collection | Purpose |
 | --- | --- |
-| `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `tester`, which only admins can set, `guest`: signed up with an email code and hasn't set a password yet). Email-code (OTP) sign-in is on |
-| `lists` | `owner`, `title`, `occasion`, `event_date`, `description`, `share_token`, `owner_name`, `reveal_givers` |
+| `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `email_hash` (for Gravatar, set by the server), `tester`, which only admins can set, `guest`: signed up with an email code and hasn't set a password yet). Email-code (OTP) sign-in is on |
+| `lists` | `owner`, `title`, `occasion`, `event_date`, `description`, `share_token`, `owner_name`, `reveal_givers`, `theme`, `cover` (file), `friend_view`, `private` (ideas board: share-token rules all require `private = false`) |
 | `items` | `list`, `name`, `url`, `price`, `quantity`, `priority`, `category`, `image` (file), `image_url`, `description`, `received`, `thanked`; set by the server: `current_price`, `price_checked`, `price_alerted` |
 | `categories` | `name`, `icon`, `owner` (empty = built-in) |
 | `reservations` | `item`, `user`, `reserver_name`, `purchased`, `expires`, `reminded`. Never visible to the list owner |

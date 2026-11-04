@@ -89,6 +89,7 @@ function ownListOrThrow(app, listId, auth) {
     throw new BadRequestError("That wish list no longer exists. Pick another one.");
   }
   if (list.getString("owner") !== auth.id) throw new ForbiddenError("You can only share your own wish lists.");
+  if (list.getBool("private")) throw new BadRequestError("That's a private ideas board, so your Santa couldn't open it. Pick a wish list instead.");
   return list.id;
 }
 

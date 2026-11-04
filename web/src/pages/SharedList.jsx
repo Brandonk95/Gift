@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { Bell, BellRing, Check, Clock, Gift, HandCoins, Pencil, Printer, RefreshCw, ShoppingBag, Undo2, X } from "lucide-react";
 import ItemCard from "../components/ItemCard.jsx";
+import ItemsGrid from "../components/ItemsGrid.jsx";
 import ChipIn, { pledgeSummary } from "../components/ChipIn.jsx";
 import GuestReserve from "../components/GuestReserve.jsx";
 import Questions from "../components/Questions.jsx";
@@ -104,7 +105,7 @@ export default function SharedList() {
   const wanted = useMemo(() => items.filter((i) => !i.received), [items]);
   const shown = useMemo(() => (onlyAvailable ? wanted.filter((i) => !isTaken(i)) : wanted), [wanted, onlyAvailable, resByItem, pledgesByItem]); // eslint-disable-line react-hooks/exhaustive-deps
   const hidePrice = !!list?.hide_prices && !isOwner;
-  const { visible, toolbar, view, filtering, clear } = useItemFilters(shown, categoryMap, { hidePrice, defaultSort: "custom" });
+  const { visible, toolbar, view, filtering, clear } = useItemFilters(shown, categoryMap, { hidePrice, defaultSort: "custom", friendView: list?.friend_view || "" });
 
   if (missing) {
     return <NotFound title="This link doesn't work" message="The list may have been deleted, or the owner created a new share link. Ask them for the current link." />;
@@ -297,7 +298,7 @@ export default function SharedList() {
           )}
         </div>
       ) : (
-        <div className={`items items-${view}`}>
+        <ItemsGrid view={view}>
           {visible.map((it) => {
             const r = resByItem[it.id];
             const byMe = r && user && r.user === user.id;
@@ -372,7 +373,7 @@ export default function SharedList() {
               </ItemCard>
             );
           })}
-        </div>
+        </ItemsGrid>
       )}
 
       {!isOwner && list.reveal_givers && list.event_date && (

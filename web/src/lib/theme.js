@@ -37,6 +37,7 @@ export const VIEWS = {
   grid: { label: "Cards" },
   compact: { label: "Compact" },
   list: { label: "List" },
+  board: { label: "Board" },
 };
 
 // Per-list color tags (lists.color)

@@ -272,10 +272,18 @@ export default function Account() {
                 <button className="btn btn-primary">Save</button>
               </div>
             </label>
-            {user.avatar && (
+            {user.avatar ? (
               <button type="button" className="link-btn small" onClick={removeAvatar}>
                 Remove profile picture
               </button>
+            ) : (
+              <span className="muted small">
+                No picture uploaded, so we show your{" "}
+                <a href="https://gravatar.com" target="_blank" rel="noopener noreferrer">
+                  Gravatar
+                </a>{" "}
+                if you have one. Click the circle to upload your own.
+              </span>
             )}
           </form>
         </div>

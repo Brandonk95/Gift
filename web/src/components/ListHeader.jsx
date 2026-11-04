@@ -1,6 +1,7 @@
 import { CalendarDays } from "lucide-react";
 import { countdown, formatDate, occasion } from "../lib/format.js";
 import { listColor } from "../lib/theme.js";
+import { coverProps, listCover } from "../lib/themes.js";
 
 export function ListIcon({ list, size = "md" }) {
   const color = listColor(list);
@@ -15,8 +16,10 @@ export default function ListHeader({ list, eyebrow, meta, actions }) {
   const o = occasion(list.occasion);
   const cd = countdown(list.event_date);
   const color = listColor(list);
+  const cover = coverProps(listCover(list), "list-cover");
   return (
-    <section className="list-header" style={color ? { "--list-color": color } : undefined}>
+    <section className={`list-header ${cover ? "has-cover" : ""}`} style={color ? { "--list-color": color } : undefined}>
+      {cover && <div {...cover} aria-hidden="true" />}
       <ListIcon list={list} size="lg" />
       <div className="list-header-body">
         <p className="eyebrow">{eyebrow || o.label}</p>

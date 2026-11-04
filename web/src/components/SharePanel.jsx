@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Copy, Eye, Mail, MessageCircle, MessageSquareText, RefreshCw, Share } from "lucide-react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
+import { Copy, Download, Eye, Mail, MessageCircle, MessageSquareText, RefreshCw, Share } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { errorMessage, pb, randomToken } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
@@ -9,7 +10,9 @@ export function shareUrl(list) {
 }
 
 export default function SharePanel({ list, onClose, onListChange }) {
-  const { config, notify } = useApp();
+  const { config, notify, setPrefs } = useApp();
+  // for the dashboard's getting-started guide
+  const markShared = () => setPrefs({ shared: true });
   const [emails, setEmails] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -19,13 +22,18 @@ export default function SharePanel({ list, onClose, onListChange }) {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
+      markShared();
       notify("Link copied!");
     } catch {
       window.prompt("Copy this link:", url);
     }
   };
 
-  const nativeShare = () => navigator.share({ title: list.title, text: `My gift list: ${list.title}`, url }).catch(() => {});
+  const nativeShare = () =>
+    navigator
+      .share({ title: list.title, text: `My gift list: ${list.title}`, url })
+      .then(markShared)
+      .catch(() => {});
 
   const sendEmails = async (e) => {
     e.preventDefault();
@@ -36,6 +44,7 @@ export default function SharePanel({ list, onClose, onListChange }) {
         method: "POST",
         body: { emails: emails.split(/[\s,;]+/).filter(Boolean), message },
       });
+      if (res.sent) markShared();
       notify(`Sent to ${res.sent} ${res.sent === 1 ? "person" : "people"}${res.failed.length ? ` (${res.failed.length} failed)` : ""} ✉️ Let them know to check spam or junk if it doesn't arrive.`);
       setEmails("");
       setMessage("");
@@ -59,7 +68,10 @@ export default function SharePanel({ list, onClose, onListChange }) {
 
   return (
     <Modal title="Share your list" onClose={onClose}>
-      <p className="muted small">Anyone with this link can view your list. Friends need an account to reserve gifts — you'll never see what's reserved.</p>
+      <p className="muted small">
+        Anyone with this link can view your list.{" "}
+        {config.smtpEnabled ? "Friends reserve gifts with just their email, no account needed." : "Friends need an account to reserve gifts."} You'll never see what's reserved.
+      </p>
       <div className="input-group">
         <input readOnly value={url} onFocus={(e) => e.target.select()} />
         <button className="btn btn-primary" onClick={copy}>
@@ -85,6 +97,8 @@ export default function SharePanel({ list, onClose, onListChange }) {
           <Eye size={14} /> Preview
         </a>
       </div>
+
+      <QrCard url={url} title={list.title} onDownload={markShared} />
 
       <div className="divider" />
       <h3>Send invitations by email</h3>
@@ -120,5 +134,33 @@ export default function SharePanel({ list, onClose, onListChange }) {
         </button>
       </div>
     </Modal>
+  );
+}
+
+// A QR code of the share link, to put on invitations, cards or a fridge note
+function QrCard({ url, title, onDownload }) {
+  const [src, setSrc] = useState("");
+  useEffect(() => {
+    let alive = true;
+    QRCode.toDataURL(url, { width: 640, margin: 2, errorCorrectionLevel: "M", color: { dark: "#18181b", light: "#ffffff" } })
+      .then((d) => alive && setSrc(d))
+      .catch(() => alive && setSrc(""));
+    return () => {
+      alive = false;
+    };
+  }, [url]);
+  if (!src) return null;
+  const file = `${(title || "gift-list").replace(/[^\w\- ]+/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "gift-list"}-qr.png`;
+  return (
+    <div className="qr-card">
+      <img src={src} alt={`QR code for ${title}`} width={140} height={140} />
+      <div>
+        <strong>QR code</strong>
+        <p className="muted small">Print it on invitations or cards. Pointing a phone camera at it opens your list.</p>
+        <a className="btn btn-secondary btn-sm" href={src} download={file} onClick={onDownload}>
+          <Download size={14} /> Download
+        </a>
+      </div>
+    </div>
   );
 }

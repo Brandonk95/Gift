@@ -34,7 +34,7 @@ function sendDigests(app) {
         continue;
       }
       // the owner reset the share link (access revoked), archived the list, or it's their own
-      if (f.getString("token") !== list.getString("share_token") || list.getBool("archived")) continue;
+      if (f.getString("token") !== list.getString("share_token") || list.getBool("archived") || list.getBool("private")) continue;
       if (list.getString("owner") === userId && !user.getBool("tester")) continue;
 
       const since = f.getString("notified_at") || f.getString("created");
@@ -87,7 +87,7 @@ function sendOccasionReminders(app) {
   if (!u.smtpEnabled(app)) return { emailed: 0, failed: 0 };
   const mails = require(`${__hooks}/lib/mails.js`);
   const target = localDate(OCCASION_DAYS);
-  const lists = app.findRecordsByFilter("lists", "archived = false && event_date >= {:from} && event_date <= {:to}", "", 0, 0, {
+  const lists = app.findRecordsByFilter("lists", "archived = false && private = false && event_date >= {:from} && event_date <= {:to}", "", 0, 0, {
     from: `${target} 00:00:00.000Z`,
     to: `${target} 23:59:59.999Z`,
   });

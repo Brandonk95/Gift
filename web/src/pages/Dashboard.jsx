@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Archive, ArchiveRestore, ChevronDown, ChevronRight, CopyPlus, Link2, Lock, MailCheck, Plus, Settings2, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, ChevronRight, CopyPlus, Lightbulb, Link2, Lock, MailCheck, Plus, Settings2, Trash2, X } from "lucide-react";
+import GettingStarted from "../components/GettingStarted.jsx";
 import ListForm from "../components/ListForm.jsx";
 import { ListIcon } from "../components/ListHeader.jsx";
 import { shareUrl } from "../components/SharePanel.jsx";
@@ -9,6 +10,7 @@ import { errorMessage, pb, shareHeaders } from "../lib/pb.js";
 import { countdown, daysUntil, formatDate, occasion } from "../lib/format.js";
 import { duplicateList } from "../lib/listActions.js";
 import { listColor } from "../lib/theme.js";
+import { coverProps, listCover } from "../lib/themes.js";
 import { useApp } from "../lib/app.jsx";
 
 // Occasions in the next 60 days: your lists, lists you follow, and Secret Santas
@@ -181,10 +183,19 @@ export default function Dashboard() {
     }
   };
 
-  const [activeLists, archivedLists] = useMemo(() => {
+  const [activeLists, archivedLists, ideaBoards] = useMemo(() => {
     const sorted = [...(lists || [])].sort(SORTS[sort].fn);
-    return [sorted.filter((l) => !l.archived), sorted.filter((l) => l.archived)];
+    return [sorted.filter((l) => !l.archived && !l.private), sorted.filter((l) => l.archived && !l.private), sorted.filter((l) => l.private)];
   }, [lists, sort]);
+
+  const newIdeasBoard = async () => {
+    try {
+      const l = await pb.collection("lists").create({ owner: user.id, title: "Ideas", occasion: "other", emoji: "💡", private: true });
+      navigate(`/lists/${l.id}`);
+    } catch (err) {
+      notify(errorMessage(err, "create an ideas board"), "error");
+    }
+  };
 
   const replaceList = (l) => setLists((prev) => prev.map((x) => (x.id === l.id ? l : x)));
 
@@ -238,10 +249,10 @@ export default function Dashboard() {
   };
 
   const menuFor = (l) => [
-    { label: "Copy share link", icon: Link2, onClick: () => copyLink(l) },
+    { label: "Copy share link", icon: Link2, hidden: l.private, onClick: () => copyLink(l) },
     { label: "Settings", icon: Settings2, onClick: () => setForm({ list: l }) },
     { label: "Duplicate", icon: CopyPlus, onClick: () => dup(l) },
-    { label: l.archived ? "Restore" : "Archive", icon: l.archived ? ArchiveRestore : Archive, onClick: () => toggleArchive(l) },
+    { label: l.archived ? "Restore" : "Archive", icon: l.archived ? ArchiveRestore : Archive, hidden: l.private, onClick: () => toggleArchive(l) },
     { divider: true },
     { label: "Delete", icon: Trash2, danger: true, onClick: () => remove(l) },
   ];
@@ -260,6 +271,7 @@ export default function Dashboard() {
 
       <VerifyBanner />
       {error && <div className="alert alert-error">{error}</div>}
+      {lists !== null && <GettingStarted lists={lists.filter((l) => !l.private)} counts={counts} onNewList={() => setForm({})} />}
       <ComingUp lists={lists} follows={follows} userId={user.id} />
 
       <div className="section-head">
@@ -295,6 +307,31 @@ export default function Dashboard() {
           </button>
         </div>
       )}
+
+      <div className="section-head">
+        <h2>
+          <Lock size={16} /> Saving for later
+        </h2>
+      </div>
+      {lists !== null &&
+        (ideaBoards.length === 0 ? (
+          <button className="new-list-card ideas-card" onClick={newIdeasBoard}>
+            <Lightbulb size={22} />
+            <span>
+              <strong>Start a private ideas board</strong>
+              <span className="muted small">Only you see it. Collect things you're thinking about, and move them to a real list when you're sure.</span>
+            </span>
+          </button>
+        ) : (
+          <div className="list-grid">
+            {ideaBoards.map((l) => (
+              <ListCard key={l.id} list={l} to={`/lists/${l.id}`} meta={`${counts[l.id] || 0} idea${counts[l.id] === 1 ? "" : "s"} · only you`} menu={menuFor(l)} />
+            ))}
+            <button className="new-list-card compact" onClick={newIdeasBoard}>
+              <Plus size={20} /> New ideas board
+            </button>
+          </div>
+        ))}
 
       {archivedLists.length > 0 && (
         <>
@@ -368,8 +405,10 @@ function ListCard({ list, to, meta, menu, dim }) {
   const o = occasion(list.occasion);
   const cd = countdown(list.event_date);
   const color = listColor(list);
+  const cover = coverProps(listCover(list, "600x200"), "list-card-cover");
   return (
-    <div className={`list-card ${dim ? "dim" : ""}`} style={color ? { "--list-color": color } : undefined}>
+    <div className={`list-card ${dim ? "dim" : ""} ${cover ? "has-cover" : ""}`} style={color ? { "--list-color": color } : undefined}>
+      {cover && <span {...cover} aria-hidden="true" />}
       <Link to={to} className="list-card-link">
         <ListIcon list={list} />
         <div className="list-card-body">

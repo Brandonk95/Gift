@@ -2,16 +2,17 @@ import { ExternalLink, GripVertical, Star } from "lucide-react";
 import { itemImage } from "../lib/pb.js";
 import { PRIORITIES, formatPrice, hostname } from "../lib/format.js";
 
-// One gift. `view` is grid | compact | list. Drag props are passed when reordering is on.
+// One gift. `view` is grid | compact | list | board. Drag props are passed when reordering is on.
 export default function ItemCard({ item, category, currency, status, hidePrice, view = "grid", onToggleStar, dragProps, children }) {
-  const img = itemImage(item, view === "grid" ? "400x400f" : "100x100f");
+  // board shows whole pictures at their own shape
+  const img = itemImage(item, view === "board" ? "600x0" : view === "grid" ? "400x400f" : "100x100f");
   const price = hidePrice ? "" : formatPrice(item.price, currency);
   const high = item.priority === "high";
   const details = [item.size && `Size ${item.size}`, item.color, item.quantity > 1 && `× ${item.quantity}`].filter(Boolean);
 
   return (
     <article
-      className={`item item-${view} ${status ? `is-${status.kind}` : ""} ${item.received ? "is-received" : ""} ${dragProps ? "is-draggable" : ""}`}
+      className={`item item-${view === "board" ? "grid item-board" : view} ${status ? `is-${status.kind}` : ""} ${item.received ? "is-received" : ""} ${dragProps ? "is-draggable" : ""}`}
       {...(dragProps || {})}
     >
       <div className="item-media">

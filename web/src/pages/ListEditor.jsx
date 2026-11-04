@@ -20,6 +20,7 @@ import {
   Undo2,
 } from "lucide-react";
 import ItemCard from "../components/ItemCard.jsx";
+import ItemsGrid from "../components/ItemsGrid.jsx";
 import ItemEditor from "../components/ItemEditor.jsx";
 import ListForm from "../components/ListForm.jsx";
 import Questions from "../components/Questions.jsx";
@@ -78,6 +79,13 @@ export default function ListEditor() {
       alive = false;
     };
   }, [id, user.id, reloadKey]);
+
+  // ?share=1 (from the dashboard's getting-started guide) opens the share panel
+  useEffect(() => {
+    if (!list || params.get("share") === null) return;
+    setParams({}, { replace: true });
+    if (!list.private) setSharing(true);
+  }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ?add=… comes from the Share page (a link shared from another app)
   useEffect(() => {
@@ -251,7 +259,7 @@ export default function ListEditor() {
     <div className="page">
       <ListHeader
         list={list}
-        eyebrow={list.archived ? "Archived list" : undefined}
+        eyebrow={list.private ? "🔒 Private ideas board" : list.archived ? "Archived list" : undefined}
         meta={
           <span className="meta-item">
             {active.length} gift{active.length === 1 ? "" : "s"}
@@ -261,15 +269,17 @@ export default function ListEditor() {
         }
         actions={
           <>
-            <button className="btn btn-primary" onClick={() => setSharing(true)}>
-              <Share2 size={16} /> Share
-            </button>
+            {!list.private && (
+              <button className="btn btn-primary" onClick={() => setSharing(true)}>
+                <Share2 size={16} /> Share
+              </button>
+            )}
             <button className="btn btn-secondary" onClick={() => setEditingList(true)}>
               <Settings2 size={16} /> Settings
             </button>
             <Menu
               items={[
-                { label: "Preview as a friend", icon: Eye, onClick: () => window.open(shareUrl(list), "_blank", "noopener") },
+                { label: "Preview as a friend", icon: Eye, hidden: list.private, onClick: () => window.open(shareUrl(list), "_blank", "noopener") },
                 { label: "Duplicate list", icon: CopyPlus, onClick: dupList },
                 { label: "Export to spreadsheet (CSV)", icon: Download, onClick: () => exportListCsv(list, items, categoryMap) },
                 { label: "Print", icon: Printer, onClick: () => window.print() },
@@ -282,7 +292,11 @@ export default function ListEditor() {
         }
       />
 
-      <p className="hint-line">🤫 Reservations are hidden from you, so your gifts stay a surprise.</p>
+      {list.private ? (
+        <p className="hint-line">🔒 Only you can see this board, and it has no share link. When an idea is ready, use the gift's ⋯ menu → Move to another list.</p>
+      ) : (
+        <p className="hint-line">🤫 Reservations are hidden from you, so your gifts stay a surprise.</p>
+      )}
       <ThankYous list={list} onItemChange={replaceItem} />
 
       <form className="quick-add" onSubmit={quickAdd}>
@@ -322,7 +336,7 @@ export default function ListEditor() {
           )}
         </div>
       ) : (
-        <div className={`items items-${view}`}>
+        <ItemsGrid view={view}>
           {visible.map((it, idx) => (
             <ItemCard
               key={it.id}
@@ -355,7 +369,7 @@ export default function ListEditor() {
               />
             </ItemCard>
           ))}
-        </div>
+        </ItemsGrid>
       )}
 
       <Questions list={list} items={items} mode="owner" />
