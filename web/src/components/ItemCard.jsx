@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ExternalLink, GripVertical, Star } from "lucide-react";
 import { itemImage } from "../lib/pb.js";
 import { PRIORITIES, formatPrice, hostname } from "../lib/format.js";
@@ -5,7 +6,9 @@ import { PRIORITIES, formatPrice, hostname } from "../lib/format.js";
 // One gift. `view` is grid | compact | list | board. Drag props are passed when reordering is on.
 export default function ItemCard({ item, category, currency, status, hidePrice, view = "grid", onToggleStar, dragProps, children }) {
   // board shows whole pictures at their own shape
-  const img = itemImage(item, view === "board" ? "600x0" : view === "grid" ? "400x400f" : "100x100f");
+  const src = itemImage(item, view === "board" ? "600x0" : view === "grid" ? "400x400f" : "100x100f");
+  const [broken, setBroken] = useState(""); // a picture that failed to load shows the placeholder instead
+  const img = src && src !== broken ? src : "";
   const price = hidePrice ? "" : formatPrice(item.price, currency);
   const high = item.priority === "high";
   const details = [item.size && `Size ${item.size}`, item.color, item.quantity > 1 && `× ${item.quantity}`].filter(Boolean);
@@ -22,7 +25,7 @@ export default function ItemCard({ item, category, currency, status, hidePrice, 
           </span>
         )}
         {img ? (
-          <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={(e) => (e.currentTarget.style.display = "none")} />
+          <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setBroken(src)} />
         ) : (
           <div className="item-placeholder">{category?.icon || "🎁"}</div>
         )}

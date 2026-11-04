@@ -27,7 +27,7 @@ function esc(s) {
 // Brand color for buttons and the logo; override with EMAIL_ACCENT=#rrggbb
 function accent() {
   const v = String($os.getenv("EMAIL_ACCENT") || "").trim();
-  return /^#[0-9a-f]{6}$/i.test(v) ? v : "#4f46e5";
+  return /^#[0-9a-f]{6}$/i.test(v) ? v : "#c8364f";
 }
 
 function hostOf(url) {

@@ -41,20 +41,34 @@ function ComingUp({ lists, follows, userId }) {
   if (!events.length) return null;
   return (
     <section className="coming-up">
-      <h2 className="coming-up-title">Coming up</h2>
+      <div className="section-head">
+        <h2>Coming up</h2>
+      </div>
       <div className="coming-up-row">
-        {events.map((ev) => (
-          <Link key={ev.key} to={ev.to} className="coming-up-card">
-            {ev.icon}
-            <span className="coming-up-body">
-              <strong>{ev.title}</strong>
-              <span className="muted small">
-                {ev.who} · {formatDate(ev.date)}
+        {events.map((ev) => {
+          const n = daysUntil(ev.date);
+          return (
+            <Link key={ev.key} to={ev.to} className={`coming-up-card ${n <= 7 ? "is-soon" : ""}`}>
+              <span className="coming-up-days">
+                {n === 0 ? (
+                  <strong className="display">Today</strong>
+                ) : (
+                  <>
+                    <strong className="display">{n}</strong>
+                    <span>{n === 1 ? "day" : "days"}</span>
+                  </>
+                )}
               </span>
-            </span>
-            <span className="countdown">{countdown(ev.date)}</span>
-          </Link>
-        ))}
+              <span className="coming-up-body">
+                <strong>{ev.title}</strong>
+                <span className="muted small">
+                  {ev.who} · {formatDate(ev.date)}
+                </span>
+              </span>
+              {ev.icon}
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -259,9 +273,10 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
+      <div className="page-head dash-head">
         <div>
-          <h1>Hi {user.name || "there"} 👋</h1>
+          <p className="eyebrow">{greeting()}</p>
+          <h1>{(user.name || "").trim().split(/\s+/)[0] || "Welcome back"}</h1>
           <p className="muted">Your wish lists, and the ones friends have shared with you.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setForm({})}>
@@ -275,7 +290,9 @@ export default function Dashboard() {
       <ComingUp lists={lists} follows={follows} userId={user.id} />
 
       <div className="section-head">
-        <h2>My lists</h2>
+        <h2>
+          My lists {activeLists.length > 0 && <span className="section-count">{activeLists.length}</span>}
+        </h2>
         {activeLists.length > 1 && (
           <select className="select-sm" value={sort} onChange={(e) => changeSort(e.target.value)} aria-label="Sort lists">
             {Object.entries(SORTS).map(([k, s]) => (
@@ -310,7 +327,7 @@ export default function Dashboard() {
 
       <div className="section-head">
         <h2>
-          <Lock size={16} /> Saving for later
+          Saving for later <span className="section-note"><Lock size={13} /> only you</span>
         </h2>
       </div>
       {lists !== null &&
@@ -325,7 +342,7 @@ export default function Dashboard() {
         ) : (
           <div className="list-grid">
             {ideaBoards.map((l) => (
-              <ListCard key={l.id} list={l} to={`/lists/${l.id}`} meta={`${counts[l.id] || 0} idea${counts[l.id] === 1 ? "" : "s"} · only you`} menu={menuFor(l)} />
+              <ListCard key={l.id} list={l} to={`/lists/${l.id}`} meta={`${counts[l.id] || 0} idea${counts[l.id] === 1 ? "" : "s"}`} menu={menuFor(l)} />
             ))}
             <button className="new-list-card compact" onClick={newIdeasBoard}>
               <Plus size={20} /> New ideas board
@@ -349,12 +366,17 @@ export default function Dashboard() {
       )}
 
       <div className="section-head">
-        <h2>Shared with me</h2>
+        <h2>
+          Shared with me {follows?.length > 0 && <span className="section-count">{follows.length}</span>}
+        </h2>
       </div>
       {follows === null ? (
         <div className="loading">Loading…</div>
       ) : follows.length === 0 ? (
-        <p className="muted small">When a friend shares a list with you and you open the link while logged in, it shows up here.</p>
+        <div className="empty-hint">
+          <span className="empty-hint-icon">💌</span>
+          <p className="muted small">When a friend shares a list with you and you open the link while logged in, it shows up here.</p>
+        </div>
       ) : (
         <div className="list-grid">
           {follows.map(({ follow, list }) =>
@@ -403,15 +425,15 @@ export default function Dashboard() {
 
 function ListCard({ list, to, meta, menu, dim }) {
   const o = occasion(list.occasion);
-  const cd = countdown(list.event_date);
+  const n = daysUntil(list.event_date);
   const color = listColor(list);
-  const cover = coverProps(listCover(list, "600x200"), "list-card-cover");
+  const cover = coverProps(listCover(list, "600x200"), "list-card-banner");
   return (
-    <div className={`list-card ${dim ? "dim" : ""} ${cover ? "has-cover" : ""}`} style={color ? { "--list-color": color } : undefined}>
-      {cover && <span {...cover} aria-hidden="true" />}
+    <div className={`list-card ${dim ? "dim" : ""}`} style={color ? { "--list-color": color } : undefined}>
       <Link to={to} className="list-card-link">
-        <ListIcon list={list} />
+        {cover ? <span {...cover} aria-hidden="true" /> : <span className="list-card-banner plain" aria-hidden="true" />}
         <div className="list-card-body">
+          <ListIcon list={list} />
           <h3>{list.title}</h3>
           <p className="muted small">
             {o.label}
@@ -419,11 +441,16 @@ function ListCard({ list, to, meta, menu, dim }) {
           </p>
           <div className="list-card-meta">
             <span>{meta}</span>
-            {cd && cd !== "Past" && <span className="countdown">{cd}</span>}
+            {n !== null && n >= 0 && <span className={`countdown ${n <= 7 ? "soon" : ""}`}>{countdown(list.event_date)}</span>}
           </div>
         </div>
       </Link>
       {menu && <Menu items={menu} className="list-card-menu" />}
     </div>
   );
+}
+
+function greeting() {
+  const h = new Date().getHours();
+  return h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }

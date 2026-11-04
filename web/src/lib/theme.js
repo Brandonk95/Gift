@@ -2,6 +2,7 @@
 // you across devices, and cached in localStorage for instant first paint.
 
 export const ACCENTS = {
+  cranberry: { label: "Cranberry", value: "#c8364f" },
   indigo: { label: "Indigo", value: "#4f46e5" },
   blue: { label: "Blue", value: "#2563eb" },
   teal: { label: "Teal", value: "#0d9488" },
@@ -22,9 +23,9 @@ export const FONTS = {
 };
 
 export const RADII = {
-  sharp: { label: "Sharp", value: "4px" },
-  soft: { label: "Soft", value: "10px" },
-  round: { label: "Round", value: "18px" },
+  sharp: { label: "Sharp", value: "6px" },
+  soft: { label: "Soft", value: "14px" },
+  round: { label: "Round", value: "22px" },
 };
 
 export const MODES = {
@@ -54,7 +55,7 @@ export const LIST_COLORS = {
   pink: "#db2777",
 };
 
-export const DEFAULT_PREFS = { mode: "system", accent: "indigo", font: "inter", radius: "soft", view: "grid" };
+export const DEFAULT_PREFS = { mode: "system", accent: "cranberry", font: "inter", radius: "soft", view: "grid" };
 
 const KEY = "giftlist.prefs";
 

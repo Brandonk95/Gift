@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun, UserRound } from "lucide-react";
 import { pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
@@ -28,10 +28,19 @@ export function Avatar({ user, size = 32 }) {
   );
 }
 
+const NAV = [
+  { to: "/", icon: ListChecks, label: "Lists", end: true, also: /^\/(lists|s)\// },
+  { to: "/shopping", icon: ShoppingBag, label: "Shopping" },
+  { to: "/exchanges", icon: Shuffle, label: "Secret Santa" },
+];
+
 export default function Layout({ children }) {
   const { user, config, prefs, setPrefs } = useApp();
   const navigate = useNavigate();
   const dark = isDark(prefs.mode);
+  const { pathname } = useLocation();
+  // a list page counts as being in "Lists"
+  const cls = (base, also) => ({ isActive }) => `${base} ${isActive || (also && also.test(pathname)) ? "active" : ""}`;
 
   const logout = () => {
     pb.authStore.clear();
@@ -39,7 +48,7 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="app">
+    <div className={`app ${user ? "has-tabbar" : ""}`}>
       <header className="topbar">
         <div className="container topbar-inner">
           <Link to="/" className="brand">
@@ -50,20 +59,14 @@ export default function Layout({ children }) {
           </Link>
           <nav className="nav">
             {user && (
-              <>
-                <NavLink to="/" end className="nav-link">
-                  <ListChecks size={17} />
-                  <span>Lists</span>
-                </NavLink>
-                <NavLink to="/shopping" className="nav-link">
-                  <ShoppingBag size={17} />
-                  <span>Shopping</span>
-                </NavLink>
-                <NavLink to="/exchanges" className="nav-link">
-                  <Shuffle size={17} />
-                  <span>Secret Santa</span>
-                </NavLink>
-              </>
+              <div className="nav-links">
+                {NAV.map(({ to, icon: Icon, label, end, also }) => (
+                  <NavLink key={to} to={to} end={end} className={cls("nav-link", also)}>
+                    <Icon size={17} />
+                    <span>{label}</span>
+                  </NavLink>
+                ))}
+              </div>
             )}
             <button
               className="icon-btn"
@@ -105,6 +108,16 @@ export default function Layout({ children }) {
         </div>
       </header>
       <main className="container main">{children}</main>
+      {user && (
+        <nav className="tabbar" aria-label="Main">
+          {[...NAV, { to: "/account", icon: UserRound, label: "Account" }].map(({ to, icon: Icon, label, end, also }) => (
+            <NavLink key={to} to={to} end={end} className={cls("tabbar-link", also)}>
+              <Icon size={21} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      )}
       <footer className="footer">
         <div className="container">{config.appName || "Gift List"} · self-hosted with PocketBase</div>
       </footer>

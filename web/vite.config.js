@@ -7,8 +7,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      "/api": { target: "http://127.0.0.1:8090", changeOrigin: true },
-      "/_": { target: "http://127.0.0.1:8090", changeOrigin: true },
+      "/api": { target: process.env.PB_URL || "http://127.0.0.1:8090", changeOrigin: true },
+      "/_": { target: process.env.PB_URL || "http://127.0.0.1:8090", changeOrigin: true },
     },
   },
 });

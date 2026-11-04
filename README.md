@@ -144,7 +144,7 @@ applied every time the container starts.
 | `TZ` | Time zone for the nightly follower emails, e.g. `America/Denver` (default UTC) |
 | `DIGEST_HOUR` | Hour (0–23) to send follower emails and occasion reminders (default `0`, midnight) |
 | `RESERVATION_DAYS` | How long a reservation lasts before it must be renewed (default `7`) |
-| `EMAIL_ACCENT` | Button and logo color in emails, as `#rrggbb` (default `#4f46e5`) |
+| `EMAIL_ACCENT` | Button and logo color in emails, as `#rrggbb` (default `#c8364f`) |
 
 You can also change SMTP in the admin dashboard (**Settings → Mail settings**), but
 values set through env vars win on restart.
