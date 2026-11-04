@@ -24,9 +24,12 @@ services:
     volumes:
       - /DATA/AppData/giftlist/pb_data:/pb/pb_data
     environment:
-      # The address people use to open the app, no trailing slash. It goes in every
-      # email link, e.g. https://gifts.example.com or http://192.168.1.20:8090
-      APP_URL: ""                                       # ← set this
+      # The address people use to open the app, no trailing slash, e.g.
+      # https://gifts.example.com . Email links use whichever address the person
+      # who caused the email was on: any address listed here (separate several
+      # with commas; the first is the default), plus home-network and Tailscale
+      # addresses like http://192.168.1.20:8090, which always work.
+      APP_URL: ""                                      # ← set this
       # Your admin login for /_/ . Leave empty and the container log prints a
       # one-time setup link instead.
       PB_ADMIN_EMAIL: ""                                # ← set this
@@ -53,7 +56,7 @@ services:
     x-casaos:
       envs:
         - container: APP_URL
-          description: { en_us: "Address people use to open the app (used in email links)" }
+          description: { en_us: "Address people use to open the app; list several with commas (first is the default)" }
         - container: PB_ADMIN_EMAIL
           description: { en_us: "Admin login email for /_/" }
         - container: PB_ADMIN_PASSWORD

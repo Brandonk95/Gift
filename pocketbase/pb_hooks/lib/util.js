@@ -11,8 +11,134 @@ function escapeHtml(s) {
     .replace(/'/g, "&#39;");
 }
 
-function appUrl(app) {
+// ---------------------------------------------------------------------------
+// Which address links in emails use.
+//
+// Links go to the address the person who caused the email was using (their
+// browser's Origin), so someone on http://192.168.1.20:8090 gets links that work
+// there, and someone on https://gifts.example.com gets those. Only trusted
+// addresses are used, otherwise anyone could request a password reset for you
+// with a fake address and receive your reset link:
+//   - every address listed in APP_URL (comma-separated; the first is the default)
+//   - addresses on your own network: localhost, *.local, private and Tailscale
+//     IPs (10.x, 172.16-31.x, 192.168.x, 100.64-127.x), which strangers can't host
+// Anything else falls back to the default address.
+// ---------------------------------------------------------------------------
+function defaultUrl(app) {
   return (app.settings().meta.appURL || "http://localhost:8090").replace(/\/+$/, "");
+}
+
+// APP_URL entries, without trailing slashes
+function configuredUrls() {
+  return ($os.getenv("APP_URL") || "")
+    .split(",")
+    .map((s) => s.trim().replace(/\/+$/, ""))
+    .filter((s) => /^https?:\/\//i.test(s));
+}
+
+// "https://Gifts.Example.com:443/path" -> "https://gifts.example.com:443"
+function originOf(s) {
+  const m = String(s || "").trim().match(/^(https?):\/\/([^\/?#\s@]+)/i);
+  return m ? `${m[1]}://${m[2]}`.toLowerCase() : "";
+}
+
+function isLocalHost(hostPort) {
+  let host = hostPort.replace(/:\d+$/, "");
+  if (host[0] === "[") return host === "[::1]";
+  if (host === "localhost" || /\.(localhost|local)$/.test(host)) return true;
+  const ip = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (!ip) return false;
+  const [a, b] = [Number(ip[1]), Number(ip[2])];
+  return a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 100 && b >= 64 && b <= 127);
+}
+
+// The trusted address matching `s`, or "" if it isn't one
+function trustedUrl(s) {
+  const o = originOf(s);
+  if (!o) return "";
+  for (const url of configuredUrls()) if (originOf(url) === o) return url;
+  return isLocalHost(o.split("://")[1]) ? o : "";
+}
+
+// The trusted address a request came from (its Origin, else its Referer), or ""
+function requestUrl(e) {
+  let origin = "", referer = "";
+  try {
+    if (e.request) {
+      origin = e.request.header.get("Origin");
+      referer = e.request.header.get("Referer");
+    } else {
+      // PocketBase's own auth events expose headers through requestInfo()
+      const h = e.requestInfo().headers || {};
+      origin = h.origin || "";
+      referer = h.referer || "";
+    }
+  } catch (_) {
+    return "";
+  }
+  return trustedUrl(origin) || trustedUrl(referer);
+}
+
+// Base address for links. `ctx` says whose address to use:
+//   a request event   -> the address that request came from
+//   a users record    -> the address that person last used the app on
+//   a string          -> that address, if trusted
+// and the default address otherwise.
+function appUrl(app, ctx) {
+  let url = "";
+  try {
+    if (typeof ctx === "string") url = trustedUrl(ctx);
+    else if (ctx && (ctx.request || typeof ctx.requestInfo === "function")) url = requestUrl(ctx);
+    else if (ctx && typeof ctx.getString === "function") url = trustedUrl(ctx.getString("origin"));
+  } catch (_) {
+    url = "";
+  }
+  return url || defaultUrl(app);
+}
+
+// PocketBase's own emails (verification, password reset, sign-in codes, email
+// change, new-login alerts) are built from the default address. Requests that
+// trigger them note where they came from here; the mailer hooks then swap the
+// address in the finished message. Notes expire after 15 minutes.
+const MAIL_NOTE_TTL = 15 * 60 * 1000;
+
+function noteMailOrigin(e, record, extraEmail) {
+  const url = requestUrl(e);
+  if (!url) return;
+  const note = { url, at: Date.now() };
+  const keys = [];
+  if (record) {
+    if (record.id) keys.push(`id:${record.id}`);
+    if (record.email()) keys.push(`email:${record.email().toLowerCase()}`);
+  }
+  if (extraEmail) keys.push(`email:${String(extraEmail).toLowerCase()}`);
+  for (const k of keys) $app.store().set(`giftlist.mailorigin.${k}`, note);
+}
+
+function retargetAuthMail(e) {
+  try {
+    const store = $app.store();
+    const keys = [];
+    if (e.record) {
+      keys.push(`id:${e.record.id}`, `email:${e.record.email().toLowerCase()}`);
+    }
+    for (const to of e.message.to || []) if (to && to.address) keys.push(`email:${String(to.address).toLowerCase()}`);
+    let url = "";
+    for (const k of keys) {
+      const note = store.get(`giftlist.mailorigin.${k}`);
+      if (note && note.url && Date.now() - note.at < MAIL_NOTE_TTL) {
+        url = note.url;
+        break;
+      }
+    }
+    if (!url && e.record) url = trustedUrl(e.record.getString("origin"));
+    const from = defaultUrl(e.app);
+    if (!url || url === from) return;
+    e.message.html = String(e.message.html || "").split(from).join(url);
+    e.message.text = String(e.message.text || "").split(from).join(url);
+  } catch (err) {
+    console.log("[giftlist] could not adjust email links:", err);
+  }
 }
 
 function displayName(record) {
@@ -73,9 +199,11 @@ function unsubscribeQuery(user, kind) {
 
 // Send one of the optional emails to a user: skips people who turned that kind off,
 // and adds an unsubscribe link plus the one-click List-Unsubscribe headers.
-function sendUserMail(app, user, kind, mail) {
+// `base` is the address the email's links use (see appUrl); defaults to the
+// one the recipient last used.
+function sendUserMail(app, user, kind, mail, base) {
   if (!wantsEmail(user, kind)) return false;
-  const base = appUrl(app);
+  base = base || appUrl(app, user);
   const q = unsubscribeQuery(user, kind);
   const link = `${base}/unsubscribe?${q}`;
   const footer =
@@ -165,6 +293,12 @@ module.exports = {
   sendUserMail,
   escapeHtml,
   appUrl,
+  defaultUrl,
+  configuredUrls,
+  trustedUrl,
+  requestUrl,
+  noteMailOrigin,
+  retargetAuthMail,
   displayName,
   smtpEnabled,
   sendMail,

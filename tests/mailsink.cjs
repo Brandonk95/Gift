@@ -30,4 +30,4 @@ net.createServer((s) => {
     }
   });
   s.on("error", () => {});
-}).listen(2525, "127.0.0.1", () => console.log("sink on 2525"));
+}).listen(2525, process.env.MAILSINK_HOST || "127.0.0.1", () => console.log("sink on 2525")); // MAILSINK_HOST=0.0.0.0 for a server in Docker

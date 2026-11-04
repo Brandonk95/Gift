@@ -73,7 +73,7 @@ cronAdd("giftlist_reservations", "*/15 * * * *", () => {
           const user = $app.findRecordById("users", r.getString("user"));
           const item = $app.findRecordById("items", r.getString("item"));
           const list = $app.findRecordById("lists", item.getString("list"));
-          note = { user, mail: mails.reservationReleasedEmail({ appName: $app.settings().meta.appName, appUrl: u.appUrl($app), list, item }) };
+          note = { user, mail: mails.reservationReleasedEmail({ appName: $app.settings().meta.appName, appUrl: u.appUrl($app, user), list, item }) };
         } catch (_) {}
       }
       $app.delete(r);
@@ -108,7 +108,7 @@ cronAdd("giftlist_reservations", "*/15 * * * *", () => {
       const list = $app.findRecordById("lists", item.getString("list"));
       const mail = require(`${__hooks}/lib/mails.js`).reservationReminderEmail({
         appName: $app.settings().meta.appName,
-        appUrl: u.appUrl($app),
+        appUrl: u.appUrl($app, user),
         currency: list.getString("currency") || ($os.getenv("APP_CURRENCY") || "USD").trim(),
         list,
         item,

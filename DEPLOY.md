@@ -49,6 +49,11 @@ file, no other files. Its settings are written straight into it, and the ones to
 in are marked `← set this`: `APP_URL`, your admin email and password, and your mail
 server. Your data goes in `/DATA/AppData/giftlist` on the server.
 
+Email links use whichever address the person who caused the email was using. If you
+reach the app through more than one domain, list them all in `APP_URL`, separated by
+commas, default first. Home-network and Tailscale addresses (like
+`http://192.168.1.20:8090` or `http://100.117.26.20:8090`) work without being listed.
+
 - **CasaOS**: App Store → **Custom Install** → import icon (top right) → paste the file
   → fill in the settings on the giftlist tab → **Install**.
 - **Portainer / Dockge**: create a new stack, paste the file, edit the marked lines,

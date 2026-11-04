@@ -130,7 +130,7 @@ applied every time the container starts.
 | Variable | Description |
 | --- | --- |
 | `APP_NAME` | Name shown in the UI and emails |
-| `APP_URL` | Public URL of the app. Used for links in emails, so set it to your real domain |
+| `APP_URL` | Public URL of the app (the default for email links). Email links use the address the person who caused the email was on, if it's listed here or on your home network / Tailscale; list several addresses with commas, default first, e.g. `https://gifts.example.com,https://gifts.example.org` |
 | `APP_CURRENCY` | ISO currency code for prices (`USD`, `EUR`, `GBP`…) |
 | `HOST_PORT` | Host port published by docker compose (default `8090`) |
 | `PB_ADMIN_EMAIL` / `PB_ADMIN_PASSWORD` | Admin dashboard account, created or updated on start |
@@ -229,8 +229,11 @@ server, never your real one. They need:
 - `TEST_ADMIN_EMAIL` / `TEST_ADMIN_PASSWORD`: a superuser on it (used to trigger the
   scheduled jobs and to pause rate limits while the tests run)
 - `TEST_MAIL_DIR`: where the mail catcher writes (default `tests/.mail`)
+- `TEST_APP_URL` (optional): the test server's `APP_URL`, so the email-address test
+  also checks a second listed address
 
-Start the mail catcher with `node tests/mailsink.cjs`, then start the test server with
+Start the mail catcher with `node tests/mailsink.cjs` (add `MAILSINK_HOST=0.0.0.0` if
+the test server runs in Docker and reaches it as `host.docker.internal`), then start the test server with
 `SMTP_HOST=127.0.0.1 SMTP_PORT=2525 SMTP_TLS=false` and `DIGEST_HOUR` set to the current
 hour (the occasion reminder test runs the nightly job).
 

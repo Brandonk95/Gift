@@ -68,13 +68,14 @@ function exclusionsOf(member) {
   }
 }
 
-// { title, link } for a member's chosen wish list, if it still exists
-function listInfo(app, member) {
+// { title, link } for a member's chosen wish list, if it still exists.
+// `ctx` picks the link's address (see appUrl in util.js), usually the request.
+function listInfo(app, member, ctx) {
   const id = member.getString("list");
   if (!id) return null;
   try {
     const list = app.findRecordById("lists", id);
-    return { id: list.id, title: list.getString("title"), link: `${u.appUrl(app)}/s/${list.getString("share_token")}`, token: list.getString("share_token") };
+    return { id: list.id, title: list.getString("title"), link: `${u.appUrl(app, ctx)}/s/${list.getString("share_token")}`, token: list.getString("share_token") };
   } catch (_) {
     return null;
   }
@@ -93,7 +94,7 @@ function ownListOrThrow(app, listId, auth) {
   return list.id;
 }
 
-function exchangeJson(app, exchange, auth) {
+function exchangeJson(app, exchange, auth, ctx) {
   const organizer = (() => {
     try {
       return app.findRecordById("users", exchange.getString("owner"));
@@ -114,18 +115,18 @@ function exchangeJson(app, exchange, auth) {
     organizer: organizer ? u.displayName(organizer) : "",
     isOrganizer: isOrganizer(exchange, auth),
   };
-  if (out.isOrganizer) out.joinLink = `${u.appUrl(app)}/x/${exchange.getString("join_token")}`;
+  if (out.isOrganizer) out.joinLink = `${u.appUrl(app, ctx)}/x/${exchange.getString("join_token")}`;
   return out;
 }
 
 // Full view of one exchange for the signed-in user
-function detail(app, exchange, auth) {
+function detail(app, exchange, auth, ctx) {
   const { members, me } = requireAccess(app, exchange, auth);
   const organizer = isOrganizer(exchange, auth);
   const drawn = exchange.getString("status") === "drawn";
 
   const view = {
-    exchange: exchangeJson(app, exchange, auth),
+    exchange: exchangeJson(app, exchange, auth, ctx),
     members: members.map((m) => {
       const joined = !!m.getString("user");
       const row = {
@@ -134,7 +135,7 @@ function detail(app, exchange, auth) {
         joined,
         you: !!me && m.id === me.id,
         organizer: m.getString("user") === exchange.getString("owner"),
-        hasList: !!listInfo(app, m),
+        hasList: !!listInfo(app, m, ctx),
       };
       if (organizer) {
         row.exclusions = exclusionsOf(m);
@@ -147,13 +148,13 @@ function detail(app, exchange, auth) {
   };
 
   if (me) {
-    const list = listInfo(app, me);
+    const list = listInfo(app, me, ctx);
     view.me = { id: me.id, list: list ? list.id : "", listTitle: list ? list.title : "" };
     const rid = me.getString("recipient");
     if (drawn && rid) {
       const r = members.find((m) => m.id === rid);
       if (r) {
-        const rl = listInfo(app, r);
+        const rl = listInfo(app, r, ctx);
         view.match = { name: memberName(app, r), list: rl ? { title: rl.title, token: rl.token } : null };
       }
     }

@@ -88,7 +88,7 @@ cronAdd("giftlist_price_checks", "30 * * * *", () => {
     for (const id in people) {
       try {
         const user = app.findRecordById("users", id);
-        const mail = mails.priceDropEmail({ appName: app.settings().meta.appName, appUrl: u.appUrl(app), list, item, listed, now, currency });
+        const mail = mails.priceDropEmail({ appName: app.settings().meta.appName, appUrl: u.appUrl(app, user), list, item, listed, now, currency });
         u.sendUserMail(app, user, "prices", mail);
       } catch (err) {
         console.log("[giftlist] price drop email failed:", err);
