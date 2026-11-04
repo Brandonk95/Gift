@@ -25,6 +25,8 @@ export default function ListForm({ list, onClose, onSaved }) {
     hide_prices: !!list?.hide_prices,
     hide_reservers: !!list?.hide_reservers,
     reveal_givers: !!list?.reveal_givers,
+    no_chip_in: !!list?.no_chip_in,
+    no_questions: !!list?.no_questions,
     archived: !!list?.archived,
     theme: list?.theme || "",
     friend_view: list?.friend_view === "compact" ? "list" : list?.friend_view || "",
@@ -155,6 +157,18 @@ export default function ListForm({ list, onClose, onSaved }) {
             onChange={set("hide_reservers")}
             label="Hide who reserved what"
             hint="Friends see that a gift is taken, but not by whom."
+          />
+          <Switch
+            checked={!form.no_chip_in}
+            onChange={(v) => setForm({ ...form, no_chip_in: !v })}
+            label="Let friends chip in together"
+            hint="Several friends can split one gift. Turn off if each gift should come from one person."
+          />
+          <Switch
+            checked={!form.no_questions}
+            onChange={(v) => setForm({ ...form, no_questions: !v })}
+            label="Let friends ask questions"
+            hint="Friends can ask you things like sizes or colors without saying which gift they're getting."
           />
           <Switch
             checked={form.reveal_givers}

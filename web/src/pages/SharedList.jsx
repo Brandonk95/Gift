@@ -197,6 +197,7 @@ export default function SharedList() {
     }
   };
 
+  const chipOn = !list.no_chip_in; // the owner can turn off starting new chip-in groups
   const reservedCount = wanted.filter((i) => resByItem[i.id] || pledgesByItem[i.id]).length;
   // you're this person's Secret Santa: show the budget and which gifts fit it
   const santa = !isOwner && !hidePrice ? santaFor(matches, list.owner) : null;
@@ -380,14 +381,14 @@ export default function SharedList() {
                     <button className="btn btn-primary btn-sm" disabled={busyItem === it.id} onClick={() => reserve(it)}>
                       <Gift size={14} /> {busyItem === it.id ? "Reserving…" : "I'll get this"}
                     </button>
-                    <Menu items={[{ label: "Chip in with others", icon: HandCoins, onClick: () => setChipFor(it) }]} />
+                    {chipOn && <Menu items={[{ label: "Chip in with others", icon: HandCoins, onClick: () => setChipFor(it) }]} />}
                   </>
                 ) : config.smtpEnabled ? (
                   <>
                     <button className="btn btn-primary btn-sm" onClick={() => setGuestFor({ item: it })}>
                       <Gift size={14} /> I'll get this
                     </button>
-                    <Menu items={[{ label: "Chip in with others", icon: HandCoins, onClick: () => setGuestFor({ item: it, chip: true }) }]} />
+                    {chipOn && <Menu items={[{ label: "Chip in with others", icon: HandCoins, onClick: () => setGuestFor({ item: it, chip: true }) }]} />}
                   </>
                 ) : (
                   <Link className="btn btn-primary btn-sm" to={`/login?next=${nextParam}`}>
@@ -403,7 +404,7 @@ export default function SharedList() {
       {!isOwner && list.reveal_givers && list.event_date && (
         <p className="hint-line">💌 After {formatDate(list.event_date)}, {ownerName} will see who reserved each gift, so they can say thank you.</p>
       )}
-      {!isOwner && <Questions list={list} items={items} mode="friend" shareOpts={opts} loginPath={`/login?next=${nextParam}`} />}
+      {!isOwner && !list.no_questions && <Questions list={list} items={items} mode="friend" shareOpts={opts} loginPath={`/login?next=${nextParam}`} />}
 
       {guestFor && (
         <GuestReserve

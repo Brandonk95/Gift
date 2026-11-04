@@ -9,6 +9,13 @@
 onRecordCreateRequest((e) => {
   e.record.set("asker", e.auth ? e.auth.id : "");
   e.record.set("question", e.record.getString("question").trim());
+  try {
+    if (e.app.findRecordById("lists", e.record.getString("list")).getBool("no_questions")) {
+      throw new BadRequestError("The list owner turned off questions on this list.");
+    }
+  } catch (err) {
+    if (err instanceof BadRequestError) throw err;
+  }
   const item = e.record.getString("item");
   if (item) {
     try {

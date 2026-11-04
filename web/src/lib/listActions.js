@@ -27,6 +27,8 @@ export async function duplicateList(list, userId, { includeReceived = false } = 
     currency: list.currency,
     hide_prices: list.hide_prices,
     hide_reservers: list.hide_reservers,
+    no_chip_in: list.no_chip_in,
+    no_questions: list.no_questions,
   });
   const items = await pb.collection("items").getFullList({ filter: pb.filter("list = {:id}", { id: list.id }) });
   for (const it of items) {

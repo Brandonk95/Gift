@@ -11,6 +11,14 @@ onRecordCreateRequest((e) => {
   const { displayName } = require(`${__hooks}/lib/util.js`);
   if (e.auth) e.record.set("reserver_name", displayName(e.auth));
   const item = e.record.getString("item");
+  // Turned off on this list: no new groups, but friends can still join one that already started.
+  if (item && !e.app.findRecordsByFilter("pledges", "item = {:item}", "", 1, 0, { item }).length) {
+    let list = null;
+    try {
+      list = e.app.findRecordById("lists", e.app.findRecordById("items", item).getString("list"));
+    } catch (_) {}
+    if (list && list.getBool("no_chip_in")) throw new BadRequestError("This list doesn't use chipping in together. You can still reserve the gift yourself.");
+  }
   if (item && e.app.findRecordsByFilter("reservations", "item = {:item}", "", 1, 0, { item }).length) {
     throw new BadRequestError("Someone already reserved this gift on their own, so there's nothing to chip in on.");
   }
