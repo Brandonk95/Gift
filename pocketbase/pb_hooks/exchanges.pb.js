@@ -44,7 +44,7 @@ routerAdd(
       const me = members.find((m) => m.getString("user") === e.auth.id);
       const match = me && ex.getString("status") === "drawn" ? members.find((m) => m.id === me.getString("recipient")) : null;
       out.push({
-        ...x.exchangeJson(e.app, ex, e.auth, e),
+        ...x.exchangeJson(e.app, ex, e.auth),
         joined: members.filter((m) => m.getString("user")).length,
         invited: members.filter((m) => !m.getString("user")).length,
         matchName: match ? x.memberName(e.app, match) : "",
@@ -63,7 +63,7 @@ routerAdd(
   (e) => {
     const x = require(`${__hooks}/lib/exchanges.js`);
     const ex = x.loadExchange(e.app, e.request.pathValue("id"));
-    return e.json(200, x.detail(e.app, ex, e.auth, e));
+    return e.json(200, x.detail(e.app, ex, e.auth));
   },
   $apis.requireAuth()
 );
@@ -97,11 +97,11 @@ routerAdd(
 
     const mail = require(`${__hooks}/lib/mails.js`).exchangeInviteEmail({
       appName: e.app.settings().meta.appName,
-      appUrl: u.appUrl(e.app, e),
+      appUrl: u.appUrl(e.app),
       currency: ($os.getenv("APP_CURRENCY") || "USD").trim(),
       exchange: ex,
       from: u.displayName(e.auth),
-      link: `${u.appUrl(e.app, e)}/x/${ex.getString("join_token")}`,
+      link: `${u.appUrl(e.app)}/x/${ex.getString("join_token")}`,
     });
 
     const col = e.app.findCollectionByNameOrId("exchange_members");
@@ -151,7 +151,7 @@ routerAdd(
     const members = x.membersOf(e.app, ex.id);
     const me = members.find((m) => m.getString("user") === e.auth.id);
     return e.json(200, {
-      ...x.exchangeJson(e.app, ex, e.auth, e),
+      ...x.exchangeJson(e.app, ex, e.auth),
       joined: members.filter((m) => m.getString("user")).length,
       alreadyIn: !!me,
     });
@@ -202,12 +202,12 @@ routerAdd(
     const ex = x.loadExchange(e.app, e.request.pathValue("id"));
     const { members, me } = x.requireAccess(e.app, ex, e.auth);
     if (!me) throw new ForbiddenError("Join the exchange first.");
-    const hadList = !!x.listInfo(e.app, me, e);
+    const hadList = !!x.listInfo(e.app, me);
     me.set("list", x.ownListOrThrow(e.app, String((e.requestInfo().body || {}).list || ""), e.auth));
     e.app.save(me);
 
     // tell your Secret Santa the first time a list shows up after the draw
-    const list = x.listInfo(e.app, me, e);
+    const list = x.listInfo(e.app, me);
     if (!hadList && list && ex.getString("status") === "drawn" && u.smtpEnabled(e.app)) {
       const santa = members.find((m) => m.getString("recipient") === me.id);
       if (santa) {
@@ -215,18 +215,18 @@ routerAdd(
           const santaUser = e.app.findRecordById("users", santa.getString("user"));
           const mail = require(`${__hooks}/lib/mails.js`).exchangeListReadyEmail({
             appName: e.app.settings().meta.appName,
-            appUrl: u.appUrl(e.app, e),
+            appUrl: u.appUrl(e.app),
             exchange: ex,
             recipient: x.memberName(e.app, me),
             listLink: list.link,
           });
-          u.sendUserMail(e.app, santaUser, "santa", mail, u.appUrl(e.app, e));
+          u.sendUserMail(e.app, santaUser, "santa", mail);
         } catch (err) {
           console.log("[giftlist] list-ready email failed:", err);
         }
       }
     }
-    return e.json(200, x.detail(e.app, ex, e.auth, e));
+    return e.json(200, x.detail(e.app, ex, e.auth));
   },
   $apis.requireAuth()
 );
@@ -258,7 +258,7 @@ routerAdd(
         e.app.save(m);
       }
     }
-    return e.json(200, x.detail(e.app, ex, e.auth, e));
+    return e.json(200, x.detail(e.app, ex, e.auth));
   },
   $apis.requireAuth()
 );
@@ -287,7 +287,7 @@ routerAdd(
         e.app.save(m);
       }
     }
-    return e.json(200, self ? { left: true } : x.detail(e.app, ex, e.auth, e));
+    return e.json(200, self ? { left: true } : x.detail(e.app, ex, e.auth));
   },
   $apis.requireAuth()
 );
@@ -345,18 +345,18 @@ routerAdd(
       const fresh = x.loadExchange(e.app, ex.id);
       for (const m of joined) {
         const r = joined.find((j) => j.id === result.pairs[m.id]);
-        const rl = x.listInfo(e.app, r, e);
+        const rl = x.listInfo(e.app, r);
         try {
           const to = e.app.findRecordById("users", m.getString("user")).email();
           const mail = mails.exchangeMatchEmail({
             appName: e.app.settings().meta.appName,
-            appUrl: u.appUrl(e.app, e),
+            appUrl: u.appUrl(e.app),
             currency: ($os.getenv("APP_CURRENCY") || "USD").trim(),
             exchange: fresh,
             giver: x.memberName(e.app, m),
             recipient: x.memberName(e.app, r),
             listLink: rl ? rl.link : "",
-            exchangeLink: `${u.appUrl(e.app, e)}/exchanges/${ex.id}`,
+            exchangeLink: `${u.appUrl(e.app)}/exchanges/${ex.id}`,
             redraw,
           });
           u.sendMail(e.app, [to], mail.subject, mail.html, mail.text);
@@ -383,7 +383,7 @@ routerAdd(
     if (ex.getString("status") !== "drawn") throw new BadRequestError("Draw names first. There's nothing to reveal yet.");
     ex.set("revealed", !(e.requestInfo().body || {}).hide);
     e.app.save(ex);
-    return e.json(200, x.detail(e.app, ex, e.auth, e));
+    return e.json(200, x.detail(e.app, ex, e.auth));
   },
   $apis.requireAuth()
 );
@@ -431,15 +431,15 @@ routerAdd(
         const otherUser = e.app.findRecordById("users", other.getString("user"));
         const mail = require(`${__hooks}/lib/mails.js`).santaMessageEmail({
           appName: e.app.settings().meta.appName,
-          appUrl: u.appUrl(e.app, e),
+          appUrl: u.appUrl(e.app),
           exchange: ex,
           // the recipient never learns their Santa's name from a message
           from: toSanta ? x.memberName(e.app, me) : "Your Secret Santa",
           toSanta,
           text,
-          link: `${u.appUrl(e.app, e)}/exchanges/${ex.id}#messages`,
+          link: `${u.appUrl(e.app)}/exchanges/${ex.id}#messages`,
         });
-        u.sendUserMail(e.app, otherUser, "santa", mail, u.appUrl(e.app, e));
+        u.sendUserMail(e.app, otherUser, "santa", mail);
       } catch (err) {
         console.log("[giftlist] santa message email failed:", err);
       }

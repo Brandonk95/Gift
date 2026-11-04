@@ -18,9 +18,10 @@ onRecordCreateRequest((e) => {
     }
   }
   e.next();
+}, "questions");
 
-  // tell the list owner (sent here rather than after save so links use the
-  // address the person asking is on)
+onRecordAfterCreateSuccess((e) => {
+  e.next();
   const u = require(`${__hooks}/lib/util.js`);
   if (!u.smtpEnabled(e.app)) return;
   try {
@@ -29,12 +30,12 @@ onRecordCreateRequest((e) => {
     const item = e.record.getString("item") ? e.app.findRecordById("items", e.record.getString("item")) : null;
     const mail = require(`${__hooks}/lib/mails.js`).questionAskedEmail({
       appName: e.app.settings().meta.appName,
-      appUrl: u.appUrl(e.app, e),
+      appUrl: u.appUrl(e.app),
       list,
       item,
       question: e.record.getString("question"),
     });
-    u.sendUserMail(e.app, owner, "questions", mail, u.appUrl(e.app, e));
+    u.sendUserMail(e.app, owner, "questions", mail);
   } catch (err) {
     console.log("[giftlist] question email failed:", err);
   }
@@ -58,13 +59,13 @@ onRecordUpdateRequest((e) => {
     const item = e.record.getString("item") ? e.app.findRecordById("items", e.record.getString("item")) : null;
     const mail = require(`${__hooks}/lib/mails.js`).questionAnsweredEmail({
       appName: e.app.settings().meta.appName,
-      appUrl: u.appUrl(e.app, e),
+      appUrl: u.appUrl(e.app),
       list,
       item,
       question: e.record.getString("question"),
       answer,
     });
-    u.sendUserMail(e.app, asker, "questions", mail, u.appUrl(e.app, e));
+    u.sendUserMail(e.app, asker, "questions", mail);
   } catch (err) {
     console.log("[giftlist] answer email failed:", err);
   }

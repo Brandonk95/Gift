@@ -8,6 +8,7 @@ function sendDigests(app) {
 
   const runAt = u.pbDate(Date.now());
   const appName = app.settings().meta.appName;
+  const appUrl = u.appUrl(app);
   const defaultCurrency = ($os.getenv("APP_CURRENCY") || "USD").trim();
 
   // follows grouped by the person who'll get the email
@@ -24,8 +25,6 @@ function sendDigests(app) {
     } catch (_) {
       continue;
     }
-    // scheduled, so links use the address this person last used the app on
-    const appUrl = u.appUrl(app, user);
     const groups = [];
     for (const f of byUser[userId]) {
       let list;
@@ -48,7 +47,7 @@ function sendDigests(app) {
     if (groups.length) {
       try {
         const mail = mails.followDigestEmail({ appName, appUrl, groups });
-        if (u.sendUserMail(app, user, "digest", mail, appUrl)) emailed++;
+        if (u.sendUserMail(app, user, "digest", mail)) emailed++;
       } catch (err) {
         failed++;
         console.log("[giftlist] follow digest failed:", err);
@@ -98,15 +97,14 @@ function sendOccasionReminders(app) {
     const follows = app.findRecordsByFilter("follows", "list = {:list} && notify = true && occasion_reminded != {:date}", "", 0, 0, { list: list.id, date });
     if (!follows.length) continue;
     const open = openGifts(app, list);
+    const link = `${u.appUrl(app)}/s/${list.getString("share_token")}`;
     for (const f of follows) {
       try {
         if (f.getString("token") !== list.getString("share_token")) continue;
         const user = app.findRecordById("users", f.getString("user"));
         if (list.getString("owner") === user.id && !user.getBool("tester")) continue;
-        const base = u.appUrl(app, user);
-        const link = `${base}/s/${list.getString("share_token")}`;
-        const mail = mails.occasionReminderEmail({ appName: app.settings().meta.appName, appUrl: base, list, days: OCCASION_DAYS, open, link });
-        if (u.sendUserMail(app, user, "occasions", mail, base)) emailed++;
+        const mail = mails.occasionReminderEmail({ appName: app.settings().meta.appName, appUrl: u.appUrl(app), list, days: OCCASION_DAYS, open, link });
+        if (u.sendUserMail(app, user, "occasions", mail)) emailed++;
         f.set("occasion_reminded", date);
         app.save(f);
       } catch (err) {

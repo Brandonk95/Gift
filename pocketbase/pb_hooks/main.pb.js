@@ -21,9 +21,7 @@ onBootstrap((e) => {
   if (env("APP_NAME")) set(settings.meta, "appName", env("APP_NAME"));
   // replace PocketBase's placeholder name on a fresh install
   else if (!settings.meta.appName || settings.meta.appName === "Acme") set(settings.meta, "appName", "Gift List");
-  // APP_URL may list several addresses (comma-separated); the first is the default
-  const urls = require(`${__hooks}/lib/util.js`).configuredUrls();
-  if (urls.length) set(settings.meta, "appURL", urls[0]);
+  if (env("APP_URL")) set(settings.meta, "appURL", env("APP_URL").replace(/\/+$/, ""));
   if (env("SMTP_SENDER_ADDRESS")) set(settings.meta, "senderAddress", env("SMTP_SENDER_ADDRESS"));
   if (env("SMTP_SENDER_NAME")) set(settings.meta, "senderName", env("SMTP_SENDER_NAME"));
 
@@ -76,74 +74,6 @@ onBootstrap((e) => {
     console.log("[giftlist] could not install email templates:", err);
   }
 });
-
-// ---------------------------------------------------------------------------
-// Email links go to the address the person was using (see appUrl in lib/util.js).
-// Remember each person's address, for emails sent later (reminders, digests).
-// ---------------------------------------------------------------------------
-routerUse((e) => {
-  try {
-    if (e.auth && e.auth.collection().name === "users") {
-      const url = require(`${__hooks}/lib/util.js`).requestUrl(e);
-      if (url && url !== e.auth.getString("origin")) {
-        const user = e.app.findRecordById("users", e.auth.id);
-        user.set("origin", url);
-        e.app.saveNoValidate(user);
-      }
-    }
-  } catch (err) {
-    console.log("[giftlist] could not note the address in use:", err);
-  }
-  return e.next();
-});
-
-// PocketBase's own emails: note where the request came from...
-onRecordCreateRequest((e) => {
-  require(`${__hooks}/lib/util.js`).noteMailOrigin(e, e.record);
-  e.next();
-}, "users");
-onRecordRequestVerificationRequest((e) => {
-  require(`${__hooks}/lib/util.js`).noteMailOrigin(e, e.record);
-  e.next();
-}, "users");
-onRecordRequestPasswordResetRequest((e) => {
-  require(`${__hooks}/lib/util.js`).noteMailOrigin(e, e.record);
-  e.next();
-}, "users");
-onRecordRequestOTPRequest((e) => {
-  require(`${__hooks}/lib/util.js`).noteMailOrigin(e, e.record);
-  e.next();
-}, "users");
-onRecordRequestEmailChangeRequest((e) => {
-  require(`${__hooks}/lib/util.js`).noteMailOrigin(e, e.record, e.newEmail);
-  e.next();
-}, "users");
-onRecordAuthRequest((e) => {
-  require(`${__hooks}/lib/util.js`).noteMailOrigin(e, e.record);
-  e.next();
-}, "users");
-
-// ...and point the finished email's links there
-onMailerRecordVerificationSend((e) => {
-  require(`${__hooks}/lib/util.js`).retargetAuthMail(e);
-  e.next();
-}, "users");
-onMailerRecordPasswordResetSend((e) => {
-  require(`${__hooks}/lib/util.js`).retargetAuthMail(e);
-  e.next();
-}, "users");
-onMailerRecordOTPSend((e) => {
-  require(`${__hooks}/lib/util.js`).retargetAuthMail(e);
-  e.next();
-}, "users");
-onMailerRecordEmailChangeSend((e) => {
-  require(`${__hooks}/lib/util.js`).retargetAuthMail(e);
-  e.next();
-}, "users");
-onMailerRecordAuthAlertSend((e) => {
-  require(`${__hooks}/lib/util.js`).retargetAuthMail(e);
-  e.next();
-}, "users");
 
 // ---------------------------------------------------------------------------
 // Denormalized display names (user records are private by default).
@@ -200,12 +130,12 @@ onRecordAfterCreateSuccess((e) => {
     const list = e.app.findRecordById("lists", item.getString("list"));
     const mail = require(`${__hooks}/lib/mails.js`).reservationEmail({
       appName: e.app.settings().meta.appName,
-      appUrl: u.appUrl(e.app, user),
+      appUrl: u.appUrl(e.app),
       currency: list.getString("currency") || ($os.getenv("APP_CURRENCY") || "USD").trim(),
       list,
       item,
     });
-    u.sendUserMail(e.app, user, "reservations", mail, u.appUrl(e.app, user));
+    u.sendUserMail(e.app, user, "reservations", mail);
   } catch (err) {
     console.log("[giftlist] reservation email failed:", err);
   }
@@ -290,10 +220,10 @@ routerAdd(
 
     const note = String(body.message || "").slice(0, 1000);
     const from = u.displayName(e.auth);
-    const link = `${u.appUrl(e.app, e)}/s/${list.getString("share_token")}`;
+    const link = `${u.appUrl(e.app)}/s/${list.getString("share_token")}`;
     const mail = require(`${__hooks}/lib/mails.js`).shareEmail({
       appName: e.app.settings().meta.appName,
-      appUrl: u.appUrl(e.app, e),
+      appUrl: u.appUrl(e.app),
       currency: list.getString("currency") || ($os.getenv("APP_CURRENCY") || "USD").trim(),
       from,
       list,
