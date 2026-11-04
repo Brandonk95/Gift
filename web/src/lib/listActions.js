@@ -31,9 +31,14 @@ export async function duplicateList(list, userId, { includeReceived = false } = 
     no_questions: list.no_questions,
   });
   const items = await pb.collection("items").getFullList({ filter: pb.filter("list = {:id}", { id: list.id }) });
+  const newIds = {};
   for (const it of items) {
     if (!includeReceived && it.received) continue;
-    await copyItem(it, copy.id);
+    newIds[it.id] = (await copyItem(it, copy.id)).id;
+  }
+  // keep "goes with" links between gifts that were both copied
+  for (const it of items) {
+    if (newIds[it.id] && newIds[it.goes_with]) await pb.collection("items").update(newIds[it.id], { goes_with: newIds[it.goes_with] });
   }
   return copy;
 }

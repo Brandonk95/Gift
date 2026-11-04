@@ -21,6 +21,7 @@ import {
   Undo2,
 } from "lucide-react";
 import ItemCard from "../components/ItemCard.jsx";
+import GoesWith from "../components/GoesWith.jsx";
 import ItemsGrid from "../components/ItemsGrid.jsx";
 import ItemEditor from "../components/ItemEditor.jsx";
 import BulkAdd from "../components/BulkAdd.jsx";
@@ -362,6 +363,7 @@ export default function ListEditor() {
               category={categoryMap[it.category]}
               currency={currency}
               dragProps={dragPropsFor(it)}
+              note={<GoesWith item={it} items={items} />}
               onToggleStar={() => patchItem(it, { priority: it.priority === "high" ? "medium" : "high" }, null, "update the priority")}
             >
               <button className="btn btn-ghost btn-sm" onClick={() => setEditing({ item: it })} aria-label={`Edit ${it.name}`} title="Edit">
@@ -410,6 +412,7 @@ export default function ListEditor() {
           initial={editing.initial}
           currency={currency}
           categories={categories}
+          items={items}
           onCategoryCreated={(c) => setCategories((prev) => [...prev, c].sort((a, b) => a.name.localeCompare(b.name)))}
           onClose={() => setEditing(null)}
           onSaved={(saved) => {

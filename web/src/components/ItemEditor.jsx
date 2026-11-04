@@ -9,7 +9,7 @@ import Emoji from "./Emoji.jsx";
 // Add or edit a gift. `categories` is the list visible to the user; new ones
 // created inline are reported back through `onCategoryCreated`.
 // `initial` prefills a new gift ({ url } triggers Autofill right away).
-export default function ItemEditor({ listId, item, initial, currency, categories, onCategoryCreated, onClose, onSaved }) {
+export default function ItemEditor({ listId, item, initial, currency, categories, items = [], onCategoryCreated, onClose, onSaved }) {
   const { user, config } = useApp();
   const [form, setForm] = useState({
     name: item?.name || initial?.name || "",
@@ -22,7 +22,10 @@ export default function ItemEditor({ listId, item, initial, currency, categories
     color: item?.color || "",
     description: item?.description || "",
     image_url: item?.image_url || initial?.image_url || "",
+    goes_with: item?.goes_with || "",
   });
+  // other gifts on this list it could go with (like a case for the earbuds)
+  const partners = items.filter((o) => o.id !== item?.id && !o.received);
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
   const [removeImage, setRemoveImage] = useState(false);
@@ -176,6 +179,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
       color: form.color.trim(),
       description: form.description.trim(),
       image_url: form.image_url.trim(),
+      goes_with: form.goes_with,
     };
     if (file) body.image = file;
     else if (removeImage) body.image = null;
@@ -298,6 +302,20 @@ export default function ItemEditor({ listId, item, initial, currency, categories
                 </div>
               )}
             </label>
+            {partners.length > 0 && (
+              <label>
+                Goes with <span className="muted">(optional)</span>
+                <select value={form.goes_with} onChange={set("goes_with")}>
+                  <option value="">Nothing, it works on its own</option>
+                  {partners.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+                </select>
+                <span className="muted small">Like a case that only works with the earbuds. Friends see the two go together, but nobody has to buy both.</span>
+              </label>
+            )}
             <label>
               Notes <span className="muted">(anything that helps — model, where to buy…)</span>
               <textarea rows={3} value={form.description} onChange={set("description")} maxLength={3000} />

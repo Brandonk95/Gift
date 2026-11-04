@@ -4221,3 +4221,45 @@ img.emoji {
     margin-top: -38px;
   }
 }
+
+/* "Goes with …": a gift linked to another one on the list */
+.item-goes-with {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-2);
+}
+.item-goes-with svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.item-goes-with .link-btn {
+  color: var(--text);
+  font-weight: 600;
+  text-align: left;
+}
+.goes-with-note {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.goes-with-note.open {
+  color: var(--accent-text);
+}
+.goes-with-note.mine {
+  color: var(--success);
+}
+.item.flash {
+  animation: gift-flash 1.4s ease-out;
+}
+@keyframes gift-flash {
+  0%,
+  30% {
+    box-shadow: 0 0 0 3px var(--accent), var(--shadow);
+  }
+  100% {
+    box-shadow: 0 0 0 3px transparent, var(--shadow);
+  }
+}

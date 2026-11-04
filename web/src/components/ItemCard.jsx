@@ -6,7 +6,8 @@ import { PRIORITIES, formatPrice, hostname } from "../lib/format.js";
 
 // One gift. `view` is grid | list | board. Drag props are passed when reordering is on.
 // status: { kind: "mine" | "taken" | "group", label }
-export default function ItemCard({ item, category, currency, status, hidePrice, view = "grid", onToggleStar, dragProps, badge, children }) {
+// note: extra line under the description (e.g. "Goes with …")
+export default function ItemCard({ item, category, currency, status, hidePrice, view = "grid", onToggleStar, dragProps, badge, note, children }) {
   // board shows whole pictures at their own shape; cards crop to the same 4:3 frame
   const src = itemImage(item, view === "board" ? "600x0" : view === "grid" ? "400x400f" : "100x100f");
   const [broken, setBroken] = useState(""); // a picture that failed to load shows the placeholder instead
@@ -25,6 +26,7 @@ export default function ItemCard({ item, category, currency, status, hidePrice, 
 
   return (
     <article
+      id={`gift-${item.id}`}
       className={`item item-${view === "board" ? "grid item-board" : view} ${status ? `is-${status.kind}` : ""} ${item.received ? "is-received" : ""} ${dragProps ? "is-draggable" : ""}`}
       {...(dragProps || {})}
     >
@@ -108,6 +110,7 @@ export default function ItemCard({ item, category, currency, status, hidePrice, 
         </div>
 
         {item.description && <p className="item-desc">{item.description}</p>}
+        {note}
 
         <div className="item-foot">
           {item.url ? (

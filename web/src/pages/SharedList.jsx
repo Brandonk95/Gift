@@ -6,6 +6,7 @@ import ItemsGrid from "../components/ItemsGrid.jsx";
 import ChipIn, { pledgeSummary } from "../components/ChipIn.jsx";
 import GuestReserve from "../components/GuestReserve.jsx";
 import Questions from "../components/Questions.jsx";
+import GoesWith, { linkedGifts } from "../components/GoesWith.jsx";
 import ListHeader from "../components/ListHeader.jsx";
 import { useItemFilters } from "../components/ItemFilters.jsx";
 import { Menu } from "../components/ui.jsx";
@@ -134,7 +135,14 @@ export default function SharedList() {
     setBusyItem(item.id);
     try {
       await pb.collection("reservations").create({ item: item.id, user: uid }, opts);
-      notify(config.smtpEnabled ? "Reserved! It's on your shopping list, and we emailed you a reminder (check spam if you don't see it) 🎉" : "Reserved! It's on your shopping list 🎉");
+      // a heads-up (not a rule) when it goes with a gift nobody is getting yet
+      const loose = linkedGifts(item, wanted).filter((o) => !resByItem[o.id] && !pledgesByItem[o.id]);
+      if (loose.length) {
+        const names = loose.map((o) => `“${o.name}”`).join(" and ");
+        notify(`Reserved! Heads up: it goes with ${names}, and nobody's getting ${loose.length > 1 ? "those" : "that"} yet.`);
+      } else {
+        notify(config.smtpEnabled ? "Reserved! It's on your shopping list, and we emailed you a reminder (check spam if you don't see it) 🎉" : "Reserved! It's on your shopping list 🎉");
+      }
     } catch (err) {
       const ruleRejected = err.status === 400 && !Object.keys(err.response?.data || {}).length;
       notify(
@@ -197,6 +205,14 @@ export default function SharedList() {
     }
   };
 
+  // for "Goes with …": is the other gift still available?
+  const partnerStatus = (o) => {
+    const r = resByItem[o.id];
+    if (r) return user && r.user === user.id ? { kind: "mine", label: "you're getting it" } : { kind: "taken", label: "someone's getting it" };
+    const ps = pledgesByItem[o.id];
+    if (ps) return pledgeSummary(o, ps, user?.id).funded ? { kind: "taken", label: "covered" } : { kind: "group", label: "friends are chipping in" };
+    return { kind: "open", label: "still available" };
+  };
   const chipOn = !list.no_chip_in; // the owner can turn off starting new chip-in groups
   const reservedCount = wanted.filter((i) => resByItem[i.id] || pledgesByItem[i.id]).length;
   // you're this person's Secret Santa: show the budget and which gifts fit it
@@ -344,6 +360,7 @@ export default function SharedList() {
                 currency={currency}
                 hidePrice={hidePrice}
                 status={status}
+                note={<GoesWith item={it} items={items} statusOf={isOwner ? null : partnerStatus} />}
                 badge={
                   santa?.budget > 0 && it.price > 0 && !r ? (
                     overBudget(santa, it.price) ? null : <span className="chip-static fits-budget">Fits budget</span>
