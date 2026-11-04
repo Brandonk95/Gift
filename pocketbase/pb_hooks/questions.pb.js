@@ -23,7 +23,7 @@ onRecordCreateRequest((e) => {
 onRecordAfterCreateSuccess((e) => {
   e.next();
   const u = require(`${__hooks}/lib/util.js`);
-  if (!u.smtpEnabled(e.app)) return;
+  if (!u.canNotify(e.app)) return;
   try {
     const list = e.app.findRecordById("lists", e.record.getString("list"));
     const owner = e.app.findRecordById("users", list.getString("owner"));
@@ -50,7 +50,7 @@ onRecordUpdateRequest((e) => {
   e.next();
 
   // tell whoever asked, the first time it's answered
-  if (!answer || wasAnswered || !u.smtpEnabled(e.app)) return;
+  if (!answer || wasAnswered || !u.canNotify(e.app)) return;
   try {
     const askerId = e.record.getString("asker");
     if (!askerId) return;

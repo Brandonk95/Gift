@@ -13,14 +13,14 @@ export default function ItemEditor({ listId, item, initial, currency, categories
   const [form, setForm] = useState({
     name: item?.name || initial?.name || "",
     url: item?.url || initial?.url || "",
-    price: item?.price || "",
+    price: item?.price || initial?.price || "",
     quantity: item?.quantity || 1,
     priority: item?.priority || "medium",
     category: item?.category || "",
     size: item?.size || "",
     color: item?.color || "",
     description: item?.description || "",
-    image_url: item?.image_url || "",
+    image_url: item?.image_url || initial?.image_url || "",
   });
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");

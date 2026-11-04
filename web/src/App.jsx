@@ -12,6 +12,7 @@ import Shopping from "./pages/Shopping.jsx";
 import Exchanges from "./pages/Exchanges.jsx";
 import Exchange from "./pages/Exchange.jsx";
 import JoinExchange from "./pages/JoinExchange.jsx";
+import Groups, { Group, JoinGroup } from "./pages/Groups.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Unsubscribe from "./pages/Unsubscribe.jsx";
 import Share from "./pages/Share.jsx";
@@ -68,6 +69,23 @@ export default function App() {
             </RequireAuth>
           }
         />
+        <Route
+          path="/groups"
+          element={
+            <RequireAuth>
+              <Groups />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/groups/:id"
+          element={
+            <RequireAuth>
+              <Group />
+            </RequireAuth>
+          }
+        />
+        <Route path="/g/:token" element={<JoinGroup />} />
         <Route path="/x/:token" element={<JoinExchange />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/share" element={<Share />} />

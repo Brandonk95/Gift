@@ -94,6 +94,18 @@ export function applyPrefs(prefs) {
   if (p.mode === "system") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", p.mode);
   root.dataset.font = p.font;
+  syncBarColor(p.mode);
+}
+
+// The phone's status bar (and the installed app's bars) use the page background.
+// index.html has a light and a dark color picked by the system setting; choosing
+// Light or Dark in the app overrides both.
+const BAR = { light: "#f8f4ee", dark: "#151210" };
+function syncBarColor(mode) {
+  for (const m of document.querySelectorAll('meta[name="theme-color"]')) {
+    const scheme = /dark/.test(m.media) ? "dark" : "light";
+    m.content = BAR[mode === "light" || mode === "dark" ? mode : scheme];
+  }
 }
 
 export function listColor(list) {

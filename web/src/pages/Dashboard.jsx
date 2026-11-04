@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Archive, ArchiveRestore, ChevronDown, ChevronRight, CopyPlus, Lightbulb, Link2, Lock, MailCheck, Plus, Settings2, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, ChevronRight, CopyPlus, Lightbulb, Link2, Lock, MailCheck, Plus, Settings2, Trash2, Users, X } from "lucide-react";
 import GettingStarted from "../components/GettingStarted.jsx";
 import ListForm from "../components/ListForm.jsx";
 import { ListIcon } from "../components/ListHeader.jsx";
@@ -168,7 +168,7 @@ export default function Dashboard() {
       }
 
       try {
-        const fs = await pb.collection("follows").getFullList({ filter: pb.filter("user = {:id}", { id: user.id }), sort: "-updated" });
+        const fs = await pb.collection("follows").getFullList({ filter: pb.filter("user = {:id}", { id: user.id }), sort: "-updated", expand: "via_group" });
         const resolved = await Promise.all(
           fs.map(async (f) => {
             try {
@@ -375,7 +375,9 @@ export default function Dashboard() {
       ) : follows.length === 0 ? (
         <div className="empty-hint">
           <span className="empty-hint-icon">💌</span>
-          <p className="muted small">When a friend shares a list with you and you open the link while logged in, it shows up here.</p>
+          <p className="muted small">
+            When a friend shares a list with you and you open the link while logged in, it shows up here. Or <Link to="/groups">make a group</Link> for your family, and everyone's lists show up automatically.
+          </p>
         </div>
       ) : (
         <div className="list-grid">
@@ -385,8 +387,8 @@ export default function Dashboard() {
                 key={follow.id}
                 list={list}
                 to={`/s/${follow.token}`}
-                meta={`by ${list.owner_name || "a friend"}`}
-                menu={[{ label: "Remove from dashboard", icon: X, onClick: () => unfollow(follow) }]}
+                meta={`by ${list.owner_name || "a friend"}${follow.expand?.via_group ? ` · ${follow.expand.via_group.name}` : ""}`}
+                menu={follow.via_group ? [{ label: "Open group", icon: Users, onClick: () => navigate(`/groups/${follow.via_group}`) }] : [{ label: "Remove from dashboard", icon: X, onClick: () => unfollow(follow) }]}
               />
             ) : (
               <div key={follow.id} className="list-card dim">
@@ -423,7 +425,7 @@ export default function Dashboard() {
   );
 }
 
-function ListCard({ list, to, meta, menu, dim }) {
+export function ListCard({ list, to, meta, menu, dim }) {
   const o = occasion(list.occasion);
   const n = daysUntil(list.event_date);
   const color = listColor(list);

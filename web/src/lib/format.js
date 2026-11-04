@@ -90,6 +90,22 @@ export function countdown(pbDate) {
   return "Past";
 }
 
+// every link in some pasted text, in order, without repeats
+export function findUrls(text) {
+  const out = [];
+  for (const m of String(text || "").matchAll(/\bhttps?:\/\/[^\s<>"']+|(?:^|\s)(www\.[^\s<>"']+\.[^\s<>"']+)/gi)) {
+    let url = (m[1] || m[0]).trim().replace(/[),.!?]+$/, "");
+    if (!/^https?:/i.test(url)) url = `https://${url}`;
+    if (!out.includes(url)) out.push(url);
+  }
+  return out;
+}
+
+// Amazon wish lists (and Amazon's short share links, which usually point to one)
+export function isWishlistUrl(url) {
+  return /^https?:\/\/(www\.|smile\.)?amazon\.[a-z.]+\/(hz\/wishlist\/|gp\/registry\/wishlist\/|registry\/wishlist\/|wishlist\/)/i.test(url);
+}
+
 export function hostname(url) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");

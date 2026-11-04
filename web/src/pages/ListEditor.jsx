@@ -11,6 +11,7 @@ import {
   Download,
   Eye,
   FolderInput,
+  ListPlus,
   Pencil,
   Plus,
   Printer,
@@ -22,6 +23,7 @@ import {
 import ItemCard from "../components/ItemCard.jsx";
 import ItemsGrid from "../components/ItemsGrid.jsx";
 import ItemEditor from "../components/ItemEditor.jsx";
+import BulkAdd from "../components/BulkAdd.jsx";
 import ListForm from "../components/ListForm.jsx";
 import Questions from "../components/Questions.jsx";
 import ThankYous from "../components/ThankYous.jsx";
@@ -32,7 +34,7 @@ import { useItemFilters } from "../components/ItemFilters.jsx";
 import { Menu } from "../components/ui.jsx";
 import NotFound, { LoadError } from "./NotFound.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
-import { findUrl, formatPrice } from "../lib/format.js";
+import { findUrl, findUrls, formatPrice, isWishlistUrl } from "../lib/format.js";
 import { copyItem, duplicateList, exportListCsv } from "../lib/listActions.js";
 import { useApp } from "../lib/app.jsx";
 
@@ -52,6 +54,7 @@ export default function ListEditor() {
   const [sharing, setSharing] = useState(false);
   const [showReceived, setShowReceived] = useState(false);
   const [quick, setQuick] = useState("");
+  const [bulk, setBulk] = useState(null); // null | pasted text for "Add many gifts"
   const [picker, setPicker] = useState(null); // { item, mode: "move" | "copy" }
   const dragId = useRef(null);
   const [params, setParams] = useSearchParams();
@@ -94,7 +97,9 @@ export default function ListEditor() {
     setParams({}, { replace: true });
     const url = findUrl(shared);
     const rest = shared.split(/\s+/).filter((w) => !/^(https?:\/\/|www\.)/i.test(w)).join(" ").trim();
-    if (url) setEditing({ initial: { url, name: rest.length > 3 && rest.length < 150 ? rest : "" } });
+    // the Add-to-GiftMe button also sends what it read on the store page
+    const extra = { image_url: params.get("img") || "", price: params.get("price") || "" };
+    if (url) setEditing({ initial: { url, name: rest.length > 3 && rest.length < 150 ? rest : "", ...extra } });
     else if (shared.trim()) setEditing({ initial: { name: shared.trim().slice(0, 200) } });
   }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -138,6 +143,12 @@ export default function ListEditor() {
     const v = quick.trim();
     if (!v) return;
     const url = findUrl(v);
+    // several links, or a wish list: add them all at once
+    if (findUrls(v).length > 1 || isWishlistUrl(url)) {
+      setBulk(v);
+      setQuick("");
+      return;
+    }
     if (url) {
       // text shared along with the link is usually the product name
       const rest = v.split(/\s+/).filter((w) => !/^(https?:\/\/|www\.)/i.test(w)).join(" ").trim();
@@ -308,6 +319,9 @@ export default function ListEditor() {
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing({})}>
           More details…
         </button>
+        <button type="button" className="btn btn-ghost btn-sm quick-add-many" onClick={() => setBulk("")} title="Add many gifts: paste several links, or an Amazon wish list" aria-label="Add many gifts">
+          <ListPlus size={15} /> <span>Add many</span>
+        </button>
       </form>
 
       <div className="toolbar">
@@ -374,6 +388,18 @@ export default function ListEditor() {
 
       <Questions list={list} items={items} mode="owner" />
 
+      {bulk !== null && (
+        <BulkAdd
+          listId={list.id}
+          currency={currency}
+          initialText={bulk}
+          onClose={() => setBulk(null)}
+          onAdded={(saved) => {
+            setItems((prev) => [...prev, ...saved]);
+            notify(`Added ${saved.length} gift${saved.length === 1 ? "" : "s"}`);
+          }}
+        />
+      )}
       {editing && (
         <ItemEditor
           listId={list.id}

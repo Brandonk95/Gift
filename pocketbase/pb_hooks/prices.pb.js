@@ -80,7 +80,7 @@ cronAdd("giftlist_price_checks", "30 * * * *", () => {
   }
 
   function notifyBuyers(app, list, item, listed, now, currency) {
-    if (!u.smtpEnabled(app)) return;
+    if (!u.canNotify(app)) return;
     const mails = require(`${__hooks}/lib/mails.js`);
     const people = {};
     for (const r of app.findRecordsByFilter("reservations", "item = {:id}", "", 0, 0, { id: item.id })) people[r.getString("user")] = true;

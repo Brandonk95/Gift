@@ -219,7 +219,12 @@ function reservationReminderEmail({ appName, appUrl, currency, list, item, expir
     `Already bought it? Tick it off on your shopping list and it stays yours.`,
     `— ${appName}`,
   ]);
-  return { subject: `Renew your reservation: ${item.getString("name")}`, html, text };
+  return {
+    subject: `Renew your reservation: ${item.getString("name")}`,
+    html,
+    text,
+    push: { title: "Your reservation ends soon", body: `“${item.getString("name")}” on ${owner}'s list is released ${formatDate(expires) || "soon"}. Tap to keep it.`, url: shopLink },
+  };
 }
 
 // After a reservation ran out without being renewed
@@ -246,7 +251,12 @@ function reservationReleasedEmail({ appName, appUrl, list, item }) {
     `Reserve it again: ${listLink}`,
     `— ${appName}`,
   ]);
-  return { subject: `Reservation ended: ${item.getString("name")}`, html, text };
+  return {
+    subject: `Reservation ended: ${item.getString("name")}`,
+    html,
+    text,
+    push: { title: "Your reservation ended", body: `“${item.getString("name")}” on ${owner}'s list is open again. Tap to reserve it again.`, url: listLink },
+  };
 }
 
 // A week before a followed list's occasion
@@ -278,7 +288,8 @@ function occasionReminderEmail({ appName, appUrl, list, days, open, link }) {
     `— ${appName}`,
   ]);
   const subject = `${what} is in ${days} day${days === 1 ? "" : "s"}` + (open ? ` · ${open} gift${open === 1 ? "" : "s"} still open` : "");
-  return { subject, html, text };
+  const pushTitle = `${what.charAt(0).toUpperCase()}${what.slice(1)} is ${when}`;
+  return { subject, html, text, push: { title: pushTitle, body: open ? `${open} gift${open === 1 ? "" : "s"} still open. Tap to pick one.` : "Tap to see the list.", url: link } };
 }
 
 // A friend asked the list owner something (anonymously)
@@ -431,9 +442,11 @@ function followDigestEmail({ appName, appUrl, groups }) {
     content,
     reason: `You're receiving this because you follow a gift list on ${appName}.`,
   });
+  const names = groups.reduce((all, g) => all.concat(g.items.map((i) => i.getString("name"))), []);
   return {
     subject,
     html,
+    push: { title: subject, body: names.slice(0, 4).join(", ") + (names.length > 4 ? ` and ${names.length - 4} more` : ""), url: groups.length === 1 ? groups[0].link : appUrl, tag: "digest" },
     text: m.plainText([`${gifts(total)} on lists you follow:`, ...text, `To stop these emails, open the list and press "Following".`, `— ${appName}`]),
   };
 }

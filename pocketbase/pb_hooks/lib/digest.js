@@ -4,7 +4,7 @@
 function sendDigests(app) {
   const u = require(`${__hooks}/lib/util.js`);
   const mails = require(`${__hooks}/lib/mails.js`);
-  if (!u.smtpEnabled(app)) return { emailed: 0, failed: 0 };
+  if (!u.canNotify(app)) return { emailed: 0, failed: 0 };
 
   const runAt = u.pbDate(Date.now());
   const appName = app.settings().meta.appName;
@@ -84,7 +84,7 @@ function openGifts(app, list) {
 
 function sendOccasionReminders(app) {
   const u = require(`${__hooks}/lib/util.js`);
-  if (!u.smtpEnabled(app)) return { emailed: 0, failed: 0 };
+  if (!u.canNotify(app)) return { emailed: 0, failed: 0 };
   const mails = require(`${__hooks}/lib/mails.js`);
   const target = localDate(OCCASION_DAYS);
   const lists = app.findRecordsByFilter("lists", "archived = false && private = false && event_date >= {:from} && event_date <= {:to}", "", 0, 0, {

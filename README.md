@@ -26,6 +26,14 @@ the surprise is kept.
   **Shopify** are read from Shopify's own product data, so the price, option, brand and
   photos are exact. When a price may be wrong (it differs by size or color, or it was only
   found in the page's code), the editor says "Check the price".
+- **Add many gifts at once**: paste a pile of product links (or several into the quick-add
+  box) and every one is autofilled together. You check the names and untick any you
+  don't want before they're added. An **Amazon wish list** link brings in the whole list
+  (when Amazon lets the server see it; private lists and robot checks fall back to pasting
+  links).
+- **Add-to-GiftMe button** for computers (Account → Add-to button): drag it to the
+  bookmarks bar, then click it on any store page. It sends the link, name, picture and
+  price from the page you're looking at, which works even on stores that block Autofill.
 - **Photo search** (optional): when a store gives no usable picture (Amazon, blocked sites),
   the editor searches the web for photos of the gift and lets you pick one. There's also a
   "Find photos online" button. Needs a free [Brave Search API](https://brave.com/search/api) key.
@@ -80,6 +88,18 @@ the surprise is kept.
   gift they added that day, so adding ten gifts doesn't send ten emails. Only new gifts
   are included, and resetting the share link stops the emails. Followers also get a
   reminder a week before the list's date, with how many gifts are still open.
+- **👪 Family groups**: make a group once ("Family", "Work friends") and send its invite
+  link. Everyone in it sees everyone's lists on their dashboard, including lists made
+  later, with no share links to pass around. Private ideas boards stay private, archived
+  lists drop off, and leaving the group takes its lists away again (lists you opened from
+  a share link yourself stay). The person who made the group can remove people, rename
+  it, or make a new invite link.
+- **📱 Phone notifications** (Web Push): turn them on under Account → Phone notifications
+  and the optional emails also arrive as notifications, like "Sam added 3 new gifts" or
+  "Your reservation ends soon", even when the app is closed. Each kind can be turned off
+  separately from its email. Works in Chrome, Edge, Firefox and Safari; on iPhone and
+  iPad (iOS 16.4+) add the app to the Home Screen first. They work without email set up,
+  but the server needs `https` (browsers only allow notifications on secure sites).
 - **Coming up** on the dashboard: your own lists, friends' lists you've opened and
   Secret Santa exchanges happening in the next 60 days, soonest first.
 - **Email settings**: every optional email (reservations, reminders, follow digests,
@@ -145,6 +165,7 @@ applied every time the container starts.
 | `DIGEST_HOUR` | Hour (0–23) to send follower emails and occasion reminders (default `0`, midnight) |
 | `RESERVATION_DAYS` | How long a reservation lasts before it must be renewed (default `7`) |
 | `EMAIL_ACCENT` | Button and logo color in emails, as `#rrggbb` (default `#c8364f`) |
+| `VAPID_SUBJECT` | Contact for phone notification services, `mailto:you@example.com` or an `https://` URL. Defaults to `mailto:` the sender address. The signing key is made on first use and stored in the database (`secrets`) |
 
 You can also change SMTP in the admin dashboard (**Settings → Mail settings**), but
 values set through env vars win on restart.
@@ -218,7 +239,7 @@ On Windows, PocketBase doesn't reload hooks when files change; restart it after 
 ### Tests
 
 ```bash
-node tests/run.mjs            # unit tests (product page parsing, Secret Santa draw)
+node tests/run.mjs            # unit tests (product page parsing, Secret Santa draw, notification crypto)
 node tests/run.mjs --api      # plus the API tests, against a running test server
 ```
 
@@ -233,6 +254,12 @@ server, never your real one. They need:
 Start the mail catcher with `node tests/mailsink.cjs`, then start the test server with
 `SMTP_HOST=127.0.0.1 SMTP_PORT=2525 SMTP_TLS=false` and `DIGEST_HOUR` set to the current
 hour (the occasion reminder test runs the nightly job).
+
+The phone notification test stands in for a push service on port 2526: start the test
+server with `PUSH_TEST_ENDPOINT=http://127.0.0.1:2526/` (or
+`http://host.docker.internal:2526/` when it runs in Docker) and give the test the same
+value. Never set `PUSH_TEST_ENDPOINT` on a real server. `tests/unit-webpush.cjs` checks
+the notification encryption against Node's own crypto.
 
 ## Project layout
 
@@ -259,14 +286,18 @@ web/                      React frontend (Vite)
 
 | Collection | Purpose |
 | --- | --- |
-| `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `email_hash` (for Gravatar, set by the server), `tester`, which only admins can set, `guest`: signed up with an email code and hasn't set a password yet). Email-code (OTP) sign-in is on |
+| `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `email_hash` (for Gravatar, set by the server), `push_prefs` (notification kinds turned off), `tester`, which only admins can set, `guest`: signed up with an email code and hasn't set a password yet). Email-code (OTP) sign-in is on |
 | `lists` | `owner`, `title`, `occasion`, `event_date`, `description`, `share_token`, `owner_name`, `reveal_givers`, `theme`, `cover` (file), `friend_view`, `private` (ideas board: share-token rules all require `private = false`) |
 | `items` | `list`, `name`, `url`, `price`, `quantity`, `priority`, `category`, `image` (file), `image_url`, `description`, `received`, `thanked`; set by the server: `current_price`, `price_checked`, `price_alerted` |
 | `categories` | `name`, `icon`, `owner` (empty = built-in) |
 | `reservations` | `item`, `user`, `reserver_name`, `purchased`, `expires`, `reminded`. Never visible to the list owner |
 | `pledges` | Chip in: `item`, `user`, `reserver_name`, `amount`. Never visible to the list owner |
 | `questions` | `list`, `item`, `asker` (hidden), `question`, `answer`, `answered_at` |
-| `follows` | Shared lists a user has opened (for the dashboard). `notify` = pressed Follow; `notified_at` = last nightly email; `occasion_reminded` = date of the last week-before reminder |
+| `follows` | Shared lists a user has opened (for the dashboard). `notify` = pressed Follow; `notified_at` = last nightly email; `occasion_reminded` = date of the last week-before reminder; `via_group` = added by a family group (see `lib/groups.js`) |
+| `groups` | Family groups: `owner`, `name`, `emoji`, `owner_name`, `invite_token` |
+| `group_members` | `group`, `user`, `name`, `email_hash`. Joining goes through the API; leaving or removing deletes the record |
+| `push_subs` | Devices with phone notifications on: `user`, `endpoint`, `p256dh`, `auth`, `label` |
+| `secrets` | Server-only values (the Web Push signing key). No API access |
 | `exchanges` | Secret Santa: `owner`, `name`, `event_date`, `budget`, `currency`, `message`, `status` (open/drawn), `join_token`, `revealed` |
 | `exchange_messages` | Anonymous Santa messages: `exchange`, `from`, `to`, `text`. Only reachable through the API routes below |
 | `exchange_members` | `exchange`, `user`, `name`, `email`, `list`, `exclusions`, `recipient` (hidden). Only reachable through the API routes below |
@@ -282,6 +313,9 @@ web/                      React frontend (Vite)
 - `POST /api/giftlist/guest`: `{ name, email }` makes a guest account if there isn't one (same answer either way), before PocketBase's `request-otp` / `auth-with-otp` sign in with an emailed code
 - `POST /api/giftlist/account/password`: a guest sets their first password (`{ password, passwordConfirm }`)
 - `POST /api/giftlist/unsubscribe?u&k&t`: one-click unsubscribe from one kind of email (`{ resubscribe: true }` undoes it)
+- `GET  /api/giftlist/wishlist?url=…`: the gifts on an Amazon wish list (logged-in users)
+- Family groups: `GET /api/giftlist/groups/invite/{token}` (what an invite link joins, works signed out), `POST /api/giftlist/groups/join` (`{ token }`), `POST /api/giftlist/groups/{id}/reset-invite` (owner only)
+- Phone notifications: `GET /api/giftlist/push/key` (the key browsers subscribe with), `POST /api/giftlist/push/test` (a test notification to your devices)
 - `GET  /manifest.webmanifest`: the installable app manifest (with share target `/share`)
 - Secret Santa (logged-in users):
   - `GET  /api/giftlist/exchanges` and `GET /api/giftlist/exchanges/{id}`: your exchanges, and one exchange with its members and your match

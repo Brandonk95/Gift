@@ -481,4 +481,43 @@ function extract(url, html) {
   return out;
 }
 
-module.exports = { extract, parsePrice, cleanUrl, titleFromUrl, blockedReason, decode, shopifyJsonUrl, applyShopify };
+
+// ---------------------------------------------------------- wish list import
+
+function isWishlistUrl(url) {
+  return /^https?:\/\/(www\.|smile\.)?amazon\.[a-z.]+\/(hz\/wishlist\/|gp\/registry\/wishlist\/|registry\/wishlist\/|wishlist\/)/i.test(String(url || "")) ||
+    /^https?:\/\/(a\.co|amzn\.to|amzn\.eu)\//i.test(String(url || ""));
+}
+
+function attr(tag, name) {
+  const m = new RegExp(`\\s${name}\\s*=\\s*${VALUE}`, "i").exec(tag);
+  return m ? decode(m[1] != null ? m[1] : m[2]) : "";
+}
+
+// Items on one page of an Amazon wish list: [{ url, name, price, image }]
+// plus the address of the next page, if the list has more.
+function wishlistPage(base, html) {
+  const items = [];
+  const seen = {};
+  const blocks = String(html || "").split(/<li\b(?=[^>]*\bdata-itemId=)/i).slice(1);
+  for (const block of blocks) {
+    const li = /^[^>]*>/.exec(block);
+    const a = /<a\b[^>]*\bid=["']itemName_[^"']*["'][^>]*>([\s\S]*?)<\/a>/i.exec(block);
+    if (!a) continue;
+    const href = attr(a[0], "href");
+    const asin = /\/dp\/([A-Z0-9]{10})/i.exec(href);
+    const url = asin ? absolutize(base, `/dp/${asin[1].toUpperCase()}`) : absolutize(base, href);
+    if (!url || seen[url]) continue;
+    seen[url] = true;
+    const name = (attr(a[0], "title") || stripTags(a[1])).replace(/\s+/g, " ").trim();
+    let price = li ? parseFloat(attr(li[0], "data-price")) : NaN;
+    if (!isFinite(price) || price <= 0) price = null;
+    const img = /<img\b[^>]*\bsrc=["'](https:\/\/[^"']*images-amazon\.com\/images\/I\/[^"']+|https:\/\/m\.media-amazon\.com\/images\/I\/[^"']+)["']/i.exec(block);
+    const image = img ? img[1].replace(/\._[^/]*_\.(jpg|jpeg|png|webp)$/i, "._SL500_.$1") : "";
+    items.push({ url, name: name.slice(0, 200), price, image });
+  }
+  const more = /name=["']showMoreUrl["'][^>]*value=["']([^"']+)["']/i.exec(html) || /value=["']([^"']*paginationToken=[^"']+)["'][^>]*name=["']showMoreUrl["']/i.exec(html);
+  return { items, next: more ? absolutize(base, decode(more[1])) : "" };
+}
+
+module.exports = { isWishlistUrl, wishlistPage, extract, parsePrice, cleanUrl, titleFromUrl, blockedReason, decode, shopifyJsonUrl, applyShopify };

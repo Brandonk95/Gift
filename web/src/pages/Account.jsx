@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Camera, Check, LayoutGrid, List, Monitor, Moon, Rows3, Star, Sun, Trash2, X } from "lucide-react";
 import { Avatar } from "../components/Layout.jsx";
+import { AddButton, PushSettings } from "../components/AccountExtras.jsx";
 import { Segmented, Swatches } from "../components/ui.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { ACCENTS, FONTS, RADII, VIEWS } from "../lib/theme.js";
@@ -354,7 +355,9 @@ export default function Account() {
         </form>
       </section>
 
+      <PushSettings />
       <EmailSettings />
+      <AddButton />
 
       <section className="panel">
         <div className="panel-head">

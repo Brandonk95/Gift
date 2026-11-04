@@ -53,4 +53,24 @@ const chosen = s.applyShopify(JSON.parse(JSON.stringify(base)), product, "https:
 eq([chosen.price, chosen.priceNote], [32, ""], "chosen option's price, no warning");
 eq(s.applyShopify({ title: "Keep", images: [] }, { error: "not found" }, "https://tiny.shop/products/x", "").title, "Keep", "bad shopify answer leaves result alone");
 
+// Amazon wish lists
+eq(
+  [s.isWishlistUrl("https://www.amazon.com/hz/wishlist/ls/ABC123?ref_=wl_share"), s.isWishlistUrl("https://a.co/d/xyz"), s.isWishlistUrl("https://www.amazon.com/dp/B000000001")],
+  [true, true, false],
+  "wish list links"
+);
+const wl = s.wishlistPage(
+  "https://www.amazon.com/hz/wishlist/ls/ABC123",
+  `<ul><li data-id="X" data-itemId="I1" data-price="24.99" class="g-item-sortable"><img alt="Mug" src="https://m.media-amazon.com/images/I/71abc._SS135_.jpg">
+  <a class="a-link-normal" id="itemName_I1" title="Cool Mug &amp; Lid" href="/dp/B0ABCDEF12/?coliid=I1&amp;psc=1">Cool Mug</a></li>
+  <li data-id="X" data-itemId="I2" data-price="-Infinity"><a id="itemName_I2" href="/Some-Book/dp/b0zzzzzzzz/ref=x">  A   Book </a></li>
+  <li data-itemId="I3"><span>no link</span></li></ul>
+  <input type="hidden" name="showMoreUrl" value="/hz/wishlist/slv/items?filter=unpurchased&amp;paginationToken=tok">`
+);
+eq(wl.items, [
+  { url: "https://www.amazon.com/dp/B0ABCDEF12", name: "Cool Mug & Lid", price: 24.99, image: "https://m.media-amazon.com/images/I/71abc._SL500_.jpg" },
+  { url: "https://www.amazon.com/dp/B0ZZZZZZZZ", name: "A Book", price: null, image: "" },
+], "wish list items");
+eq(wl.next, "https://www.amazon.com/hz/wishlist/slv/items?filter=unpurchased&paginationToken=tok", "next page");
+
 process.exitCode = fails ? 1 : 0;

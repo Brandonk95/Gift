@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun, UserRound } from "lucide-react";
+import { ChevronDown, Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun, UserRound, Users } from "lucide-react";
 import { pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
 import { Menu } from "./ui.jsx";
@@ -31,7 +31,8 @@ export function Avatar({ user, size = 32 }) {
 const NAV = [
   { to: "/", icon: ListChecks, label: "Lists", end: true, also: /^\/(lists|s)\// },
   { to: "/shopping", icon: ShoppingBag, label: "Shopping" },
-  { to: "/exchanges", icon: Shuffle, label: "Secret Santa" },
+  { to: "/groups", icon: Users, label: "Groups", also: /^\/g\// },
+  { to: "/exchanges", icon: Shuffle, label: "Secret Santa", short: "Santa" },
 ];
 
 export default function Layout({ children }) {
@@ -110,10 +111,10 @@ export default function Layout({ children }) {
       <main className="container main">{children}</main>
       {user && (
         <nav className="tabbar" aria-label="Main">
-          {[...NAV, { to: "/account", icon: UserRound, label: "Account" }].map(({ to, icon: Icon, label, end, also }) => (
+          {[...NAV, { to: "/account", icon: UserRound, label: "Account" }].map(({ to, icon: Icon, label, short, end, also }) => (
             <NavLink key={to} to={to} end={end} className={cls("tabbar-link", also)}>
               <Icon size={21} />
-              <span>{label}</span>
+              <span>{short || label}</span>
             </NavLink>
           ))}
         </nav>

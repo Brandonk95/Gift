@@ -85,6 +85,9 @@ gifts.yourdomain.com {
 
 It gets and renews the certificate by itself (ports 80 and 443 must reach the server).
 
+HTTPS is also what lets phones get **notifications**: browsers only allow them on
+secure sites (plain `http://` works on `localhost` only).
+
 Then in the GiftMe admin (`https://gifts.yourdomain.com/_/`) go to **Settings →
 Application → Trusted proxy**, and add `X-Forwarded-For`. Without this, the rate limits
 think every visitor is the proxy.

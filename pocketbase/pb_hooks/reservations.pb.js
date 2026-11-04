@@ -68,7 +68,7 @@ cronAdd("giftlist_reservations", "*/15 * * * *", () => {
     for (const r of expired) {
       // gather what the "released" email needs before the record goes away
       let note = null;
-      if (u.smtpEnabled($app)) {
+      if (u.canNotify($app)) {
         try {
           const user = $app.findRecordById("users", r.getString("user"));
           const item = $app.findRecordById("items", r.getString("item"));
@@ -90,7 +90,7 @@ cronAdd("giftlist_reservations", "*/15 * * * *", () => {
     console.log("[giftlist] releasing expired reservations failed:", err);
   }
 
-  if (!u.smtpEnabled($app)) return;
+  if (!u.canNotify($app)) return;
   const soon = u.pbDate(Date.now() + 864e5);
   let due = [];
   try {

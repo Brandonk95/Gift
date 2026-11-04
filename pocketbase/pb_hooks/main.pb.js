@@ -122,7 +122,7 @@ onRecordAfterCreateSuccess((e) => {
   e.next();
 
   const u = require(`${__hooks}/lib/util.js`);
-  if (!u.smtpEnabled(e.app)) return;
+  if (!u.canNotify(e.app)) return;
 
   try {
     const user = e.app.findRecordById("users", e.record.getString("user"));
@@ -164,7 +164,7 @@ routerAdd("GET", "/manifest.webmanifest", (e) => {
       scope: "/",
       display: "standalone",
       background_color: "#f8f4ee",
-      theme_color: "#c8364f",
+      theme_color: "#f8f4ee",
       icons: [
         { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" },

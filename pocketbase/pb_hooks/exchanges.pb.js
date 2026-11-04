@@ -208,7 +208,7 @@ routerAdd(
 
     // tell your Secret Santa the first time a list shows up after the draw
     const list = x.listInfo(e.app, me);
-    if (!hadList && list && ex.getString("status") === "drawn" && u.smtpEnabled(e.app)) {
+    if (!hadList && list && ex.getString("status") === "drawn" && u.canNotify(e.app)) {
       const santa = members.find((m) => m.getString("recipient") === me.id);
       if (santa) {
         try {
@@ -426,7 +426,7 @@ routerAdd(
     msg.set("text", text);
     e.app.save(msg);
 
-    if (u.smtpEnabled(e.app) && other.getString("user")) {
+    if (u.canNotify(e.app) && other.getString("user")) {
       try {
         const otherUser = e.app.findRecordById("users", other.getString("user"));
         const mail = require(`${__hooks}/lib/mails.js`).santaMessageEmail({

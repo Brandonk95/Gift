@@ -71,11 +71,26 @@ function unsubscribeQuery(user, kind) {
   return `u=${encodeURIComponent(user.id)}&k=${encodeURIComponent(kind)}&t=${unsubscribeToken(user, kind)}`;
 }
 
-// Send one of the optional emails to a user: skips people who turned that kind off,
-// and adds an unsubscribe link plus the one-click List-Unsubscribe headers.
+// Send one of the optional notices to a user: an email (unless they turned that kind
+// off, with an unsubscribe link and the one-click List-Unsubscribe headers) and a
+// phone notification on each device that has them on. mail.push = { title, body, url }
+// is the short version for phones; without it the subject is used.
+// Returns true if it reached them either way. Throws if the email fails.
 function sendUserMail(app, user, kind, mail) {
-  if (!wantsEmail(user, kind)) return false;
   const base = appUrl(app);
+  let pushed = 0;
+  try {
+    const p = mail.push || {};
+    pushed = require(`${__hooks}/lib/push.js`).notify(app, user, kind, {
+      title: p.title || app.settings().meta.appName,
+      body: p.body || mail.subject,
+      url: p.url || base,
+      tag: p.tag,
+    });
+  } catch (err) {
+    console.log("[giftlist] push notification failed:", err);
+  }
+  if (!smtpEnabled(app) || !wantsEmail(user, kind)) return pushed > 0;
   const q = unsubscribeQuery(user, kind);
   const link = `${base}/unsubscribe?${q}`;
   const footer =
@@ -88,6 +103,17 @@ Unsubscribe from ${EMAIL_KINDS[kind]}: ${link}
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
   });
   return true;
+}
+
+// Whether optional notices can reach anyone: email is set up, or someone has
+// phone notifications on. Lets the crons skip their work on a server with neither.
+function canNotify(app) {
+  if (smtpEnabled(app)) return true;
+  try {
+    return require(`${__hooks}/lib/push.js`).anySubs(app);
+  } catch (_) {
+    return false;
+  }
 }
 
 // Very small guard against fetching internal addresses from the link preview.
@@ -163,6 +189,7 @@ module.exports = {
   wantsEmail,
   unsubscribeToken,
   sendUserMail,
+  canNotify,
   escapeHtml,
   appUrl,
   displayName,
