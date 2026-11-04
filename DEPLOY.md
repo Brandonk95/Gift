@@ -90,7 +90,9 @@ secure sites (plain `http://` works on `localhost` only).
 
 Then in the GiftMe admin (`https://gifts.yourdomain.com/_/`) go to **Settings →
 Application → Trusted proxy**, and add `X-Forwarded-For`. Without this, the rate limits
-think every visitor is the proxy.
+think every visitor is the proxy, and the admin sign-in lockout (5 wrong passwords locks
+that address out for 15 minutes, longer each time) would lock out everyone at once.
+If you ever lock yourself out, restarting the container clears it.
 
 ## 5. Bring over your current lists (optional)
 
