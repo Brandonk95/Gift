@@ -15,6 +15,13 @@ export default function ItemCard({ item, category, currency, status, hidePrice, 
   const high = item.priority === "high";
   const details = [item.size && `Size ${item.size}`, item.color, item.quantity > 1 && `× ${item.quantity}`].filter(Boolean);
   const host = item.url ? hostname(item.url) : "";
+  const picture = img ? (
+    <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setBroken(src)} />
+  ) : (
+    <div className="item-placeholder">
+      <Emoji e={category?.icon || "🎁"} />
+    </div>
+  );
 
   return (
     <article
@@ -27,12 +34,16 @@ export default function ItemCard({ item, category, currency, status, hidePrice, 
             <GripVertical size={16} />
           </span>
         )}
-        {img ? (
-          <img src={img} alt="" loading="lazy" referrerPolicy="no-referrer" draggable={false} onError={() => setBroken(src)} />
+        {item.url ? (
+          // the picture opens the store page too (the name is the link for screen readers and keyboards)
+          <a className="item-media-link" href={item.url} target="_blank" rel="noopener noreferrer nofollow" tabIndex={-1} aria-hidden="true" draggable={false}>
+            {picture}
+            <span className="item-media-cta">
+              <ExternalLink size={13} /> {host ? `View on ${host}` : "View"}
+            </span>
+          </a>
         ) : (
-          <div className="item-placeholder">
-            <Emoji e={category?.icon || "🎁"} />
-          </div>
+          picture
         )}
         {status && (
           <span className={`status-pill status-${status.kind}`}>
@@ -45,7 +56,15 @@ export default function ItemCard({ item, category, currency, status, hidePrice, 
 
       <div className="item-body">
         <div className="item-head">
-          <h3 className="item-name">{item.name}</h3>
+          <h3 className="item-name">
+            {item.url ? (
+              <a className="item-name-link" href={item.url} target="_blank" rel="noopener noreferrer nofollow" title={`Open on ${host || "the store's site"}`} draggable={false}>
+                {item.name}
+              </a>
+            ) : (
+              item.name
+            )}
+          </h3>
           {onToggleStar && (
             <button
               type="button"
