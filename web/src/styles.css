@@ -2617,16 +2617,6 @@ input[type="search"]::-webkit-search-cancel-button {
   .item-list .item-meta .chip-static {
     display: none;
   }
-  .quick-add .btn-ghost {
-    display: none;
-  }
-  .quick-add .quick-add-many {
-    display: inline-flex;
-    padding-inline: 8px;
-  }
-  .quick-add .quick-add-many span {
-    display: none;
-  }
   .filters {
     flex-basis: 100%;
   }

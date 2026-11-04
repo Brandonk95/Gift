@@ -317,12 +317,14 @@ export default function ListEditor() {
         <button className="btn btn-primary btn-sm" disabled={!quick.trim()}>
           Add
         </button>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing({})}>
-          More details…
-        </button>
-        <button type="button" className="btn btn-ghost btn-sm quick-add-many" onClick={() => setBulk("")} title="Add many gifts: paste several links, or an Amazon wish list" aria-label="Add many gifts">
-          <ListPlus size={15} /> <span>Add many</span>
-        </button>
+        <Menu
+          label="Other ways to add"
+          buttonClassName="icon-btn quick-add-more"
+          items={[
+            { label: "Add with more details…", icon: Pencil, onClick: () => setEditing({}) },
+            { label: "Add many at once", icon: ListPlus, onClick: () => setBulk("") },
+          ]}
+        />
       </form>
 
       <div className="toolbar">
