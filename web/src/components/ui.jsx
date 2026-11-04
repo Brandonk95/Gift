@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { LayoutDashboard, LayoutGrid, List, MoreHorizontal, Rows3, Search, X } from "lucide-react";
+import { GalleryVerticalEnd, LayoutGrid, List, MoreHorizontal, Search, X } from "lucide-react";
 import { VIEWS } from "../lib/theme.js";
+import Emoji from "./Emoji.jsx";
 
 // Small dropdown menu. items: [{ label, icon: Component, onClick, danger, hidden, divider }]
 // `trigger` replaces the default ⋯ icon (e.g. the account avatar), styled by `buttonClassName`
@@ -122,10 +123,10 @@ export function Segmented({ value, onChange, options, size, ariaLabel }) {
   );
 }
 
-const VIEW_ICONS = { grid: LayoutGrid, compact: Rows3, list: List, board: LayoutDashboard };
+const VIEW_ICONS = { grid: LayoutGrid, list: List, board: GalleryVerticalEnd };
 
 export function ViewToggle({ value, onChange }) {
-  const opts = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, { ...v, icon: VIEW_ICONS[k], text: false }]));
+  const opts = Object.fromEntries(Object.entries(VIEWS).map(([k, v]) => [k, { label: v.label, title: v.hint, icon: VIEW_ICONS[k] }]));
   return <Segmented value={value} onChange={onChange} options={opts} size="sm" ariaLabel="Layout" />;
 }
 
@@ -192,8 +193,8 @@ export function EmojiPicker({ value, onChange }) {
   return (
     <div className="emoji-picker">
       {EMOJIS.map((e) => (
-        <button key={e} type="button" className={`emoji-opt ${value === e ? "active" : ""}`} onClick={() => onChange(value === e ? "" : e)}>
-          {e}
+        <button key={e} type="button" className={`emoji-opt ${value === e ? "active" : ""}`} onClick={() => onChange(value === e ? "" : e)} aria-label={e} aria-pressed={value === e}>
+          <Emoji e={e} />
         </button>
       ))}
       <input

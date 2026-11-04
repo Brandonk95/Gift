@@ -7,6 +7,7 @@ import { OCCASIONS, dateOnly, occasion } from "../lib/format.js";
 import { LIST_COLORS, VIEWS } from "../lib/theme.js";
 import { OCCASION_THEME, THEMES, coverProps, listCover } from "../lib/themes.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "./Emoji.jsx";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "NZD", "JPY", "CHF", "SEK", "NOK", "DKK", "PLN", "MXN", "BRL", "INR", "ZAR"];
 
@@ -26,7 +27,7 @@ export default function ListForm({ list, onClose, onSaved }) {
     reveal_givers: !!list?.reveal_givers,
     archived: !!list?.archived,
     theme: list?.theme || "",
-    friend_view: list?.friend_view || "",
+    friend_view: list?.friend_view === "compact" ? "list" : list?.friend_view || "",
     private: !!list?.private,
   });
   const [coverFile, setCoverFile] = useState(null); // a new photo to upload
@@ -71,7 +72,7 @@ export default function ListForm({ list, onClose, onSaved }) {
               <select value={form.occasion} onChange={set("occasion")}>
                 {Object.entries(OCCASIONS).map(([k, o]) => (
                   <option key={k} value={k}>
-                    {o.icon} {o.label}
+                    <Emoji e={o.icon} /> {o.label}
                   </option>
                 ))}
               </select>

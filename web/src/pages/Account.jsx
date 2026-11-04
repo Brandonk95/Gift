@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
-import { Camera, Check, LayoutGrid, List, Monitor, Moon, Rows3, Star, Sun, Trash2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Camera, Check, LayoutGrid, List, LogOut, Monitor, Moon, GalleryVerticalEnd, Star, Sun, Trash2, X } from "lucide-react";
 import { Avatar } from "../components/Layout.jsx";
 import { AddButton, PushSettings } from "../components/AccountExtras.jsx";
 import { Segmented, Swatches } from "../components/ui.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { ACCENTS, FONTS, RADII, VIEWS } from "../lib/theme.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "../components/Emoji.jsx";
 
 const MODE_OPTS = { system: { label: "System", icon: Monitor }, light: { label: "Light", icon: Sun }, dark: { label: "Dark", icon: Moon } };
-const VIEW_OPTS = { grid: { label: VIEWS.grid.label, icon: LayoutGrid }, compact: { label: VIEWS.compact.label, icon: Rows3 }, list: { label: VIEWS.list.label, icon: List } };
+const VIEW_OPTS = { grid: { label: VIEWS.grid.label, icon: LayoutGrid }, list: { label: VIEWS.list.label, icon: List }, board: { label: VIEWS.board.label, icon: GalleryVerticalEnd } };
 
 // Optional emails (keys match EMAIL_KINDS in pb_hooks/lib/util.js)
 const EMAIL_KINDS = [
@@ -69,6 +71,7 @@ function EmailSettings() {
 
 export default function Account() {
   const { user, config, notify, prefs, setPrefs } = useApp();
+  const navigate = useNavigate();
   const [name, setName] = useState(user.name || "");
   const [pw, setPw] = useState({ oldPassword: "", password: "", passwordConfirm: "" });
   const [cats, setCats] = useState([]);
@@ -199,7 +202,18 @@ export default function Account() {
 
   return (
     <div className="page account">
-      <h1>Account</h1>
+      <div className="page-head">
+        <h1>Account</h1>
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            pb.authStore.clear();
+            navigate("/");
+          }}
+        >
+          <LogOut size={16} /> Log out
+        </button>
+      </div>
 
       <section className="panel">
         <div className="panel-head">
@@ -235,7 +249,7 @@ export default function Account() {
             Gift layout
             <span className="muted small">Also switchable from the toolbar on any list.</span>
           </div>
-          <Segmented value={prefs.view} onChange={(view) => setPrefs({ view })} options={VIEW_OPTS} ariaLabel="Default layout" />
+          <Segmented value={prefs.view === "compact" ? "list" : prefs.view} onChange={(view) => setPrefs({ view })} options={VIEW_OPTS} ariaLabel="Default layout" />
         </div>
 
         <div className="preview-card">
@@ -339,7 +353,7 @@ export default function Account() {
             {cats.map((c) => (
               <li key={c.id}>
                 <span>
-                  {c.icon} {c.name}
+                  <Emoji e={c.icon} /> {c.name}
                 </span>
                 <button className="icon-btn icon-btn-sm" title={`Delete ${c.name}`} aria-label={`Delete ${c.name}`} onClick={() => delCat(c)}>
                   <X size={14} />

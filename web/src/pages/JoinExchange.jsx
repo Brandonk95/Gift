@@ -4,6 +4,7 @@ import { Calendar, Users, Wallet } from "lucide-react";
 import { errorMessage, pb } from "../lib/pb.js";
 import { countdown, formatDate, formatPrice } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "../components/Emoji.jsx";
 
 // /x/:token, the link in Secret Santa invitations
 export default function JoinExchange() {
@@ -64,7 +65,7 @@ export default function JoinExchange() {
 
   return (
     <div className="auth-card card join-card">
-      <div className="join-icon">🎅</div>
+      <div className="join-icon"><Emoji e="🎅" /></div>
       <p className="eyebrow">Secret Santa</p>
       <h1>{x.name}</h1>
       <p className="muted">

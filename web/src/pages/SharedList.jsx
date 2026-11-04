@@ -9,14 +9,17 @@ import Questions from "../components/Questions.jsx";
 import ListHeader from "../components/ListHeader.jsx";
 import { useItemFilters } from "../components/ItemFilters.jsx";
 import { Menu } from "../components/ui.jsx";
+import Emoji from "../components/Emoji.jsx";
 import NotFound, { LoadError } from "./NotFound.jsx";
 import { errorMessage, pb, shareHeaders } from "../lib/pb.js";
 import { formatDate, formatPrice, holdEndsSoon, holdLabel, holdPeriod, occasion, renewReservation, reservationExpired } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
+import { overBudget, santaFor, useMyMatches } from "../lib/santa.js";
+import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
 
 export default function SharedList() {
   const { token } = useParams();
-  const { user, config, notify } = useApp();
+  const { user, config, notify, undoable } = useApp();
   const loc = useLocation();
   const [list, setList] = useState(null);
   const [items, setItems] = useState([]);
@@ -32,6 +35,7 @@ export default function SharedList() {
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [follow, setFollow] = useState(null);
   const [followBusy, setFollowBusy] = useState(false);
+  const matches = useMyMatches(user?.id);
 
   const opts = useMemo(() => shareHeaders(token), [token]);
   // testers (set in the admin dashboard) see their own lists the way friends do
@@ -120,7 +124,7 @@ export default function SharedList() {
         }}
       />
     );
-  if (!list) return <div className="loading">Loading…</div>;
+  if (!list) return <CardsSkeleton header />;
 
   const currency = list.currency || config.currency;
   const ownerName = list.owner_name || "The list owner";
@@ -145,18 +149,14 @@ export default function SharedList() {
     }
   };
 
-  const unreserve = async (r) => {
-    setBusyItem(r.item);
-    try {
-      await pb.collection("reservations").delete(r.id, opts);
-      notify("Reservation cancelled — someone else can get it now");
-    } catch (err) {
-      notify(errorMessage(err, "cancel your reservation"), "error");
-    } finally {
-      await loadReservations(list.id).catch(() => {});
-      setBusyItem(null);
-    }
-  };
+  const unreserve = (r) =>
+    undoable({
+      message: "Released. Someone else can get it now.",
+      hide: () => setReservations((prev) => prev.filter((x) => x.id !== r.id)),
+      restore: () => setReservations((prev) => (prev.some((x) => x.id === r.id) ? prev : [...prev, r])),
+      commit: () => pb.collection("reservations").delete(r.id, opts).finally(() => loadReservations(list.id).catch(() => {})),
+      failMessage: "Couldn't release that gift. It's still yours.",
+    });
 
   const togglePurchased = async (r) => {
     try {
@@ -198,17 +198,22 @@ export default function SharedList() {
   };
 
   const reservedCount = wanted.filter((i) => resByItem[i.id] || pledgesByItem[i.id]).length;
+  // you're this person's Secret Santa: show the budget and which gifts fit it
+  const santa = !isOwner && !hidePrice ? santaFor(matches, list.owner) : null;
+  const santaBudget = santa?.budget > 0 ? formatPrice(santa.budget, santa.currency || currency) : "";
+  const firstName = (list.owner_name || "").trim().split(/\s+/)[0];
+  const titleNamesOwner = firstName && list.title.toLowerCase().includes(firstName.toLowerCase());
   const mine = [...reservations, ...pledges].filter((r) => user && r.user === user.id);
 
   return (
     <div className="page">
       <ListHeader
         list={list}
-        eyebrow={`${list.owner_name ? `${list.owner_name}'s` : "A"} ${occasion(list.occasion).label.toLowerCase()} list`}
+        eyebrow={titleNamesOwner || !list.owner_name ? occasion(list.occasion).label : `${occasion(list.occasion).label} · ${list.owner_name}`}
         meta={
           !isOwner && (
             <span className="meta-item">
-              {wanted.length} gift{wanted.length === 1 ? "" : "s"} · {reservedCount} reserved
+              <Gift size={15} /> {wanted.length} gift{wanted.length === 1 ? "" : "s"} · {reservedCount} reserved
               {mine.length > 0 && ` · ${mine.length} by you`}
             </span>
           )
@@ -269,6 +274,16 @@ export default function SharedList() {
             </>
           )}
         </div>
+      ) : santa ? (
+        <div className="banner santa-banner">
+          <Emoji e="🎅" /> You're {firstName || ownerName}'s Secret Santa for <strong>{santa.name}</strong>
+          {santaBudget && (
+            <>
+              {" "}
+              · budget {santaBudget}. Gifts that fit are marked <span className="chip-static fits-budget">Fits budget</span>
+            </>
+          )}
+        </div>
       ) : (
         <p className="hint-line">🤫 Reserve a gift so nobody else buys it. Reservations last {holdPeriod(config.reservationDays)} (renew them or mark them bought to keep them). {ownerName} can't see reservations.</p>
       )}
@@ -283,11 +298,7 @@ export default function SharedList() {
       </div>
 
       {wanted.length === 0 ? (
-        <div className="empty">
-          <div className="empty-icon">🎀</div>
-          <h3>Nothing here yet</h3>
-          <p className="muted">Check back later — {list.owner_name || "they"} hasn't added any gifts.</p>
-        </div>
+        <EmptyState art="gift" title="Nothing here yet" text={`${list.owner_name || "They"} hasn't added any gifts. Check back later.`} />
       ) : visible.length === 0 ? (
         <div className="empty empty-sm">
           <p className="muted">{filtering ? "No gifts match your search." : "Everything has been reserved. 🎉"}</p>
@@ -312,7 +323,7 @@ export default function SharedList() {
             const status = isOwner
               ? null
               : byMe
-                ? { kind: "mine", label: r.purchased ? "Bought by you" : holdEndsSoon(r) ? `Reserved by you · ${holdLabel(r).toLowerCase()}` : "Reserved by you" }
+                ? { kind: "mine", label: r.purchased ? "You bought this" : holdEndsSoon(r) ? `You're getting this · ${holdLabel(r).toLowerCase()}` : "You're getting this" }
                 : r
                   ? { kind: "taken", label: list.hide_reservers || !r.reserver_name ? "Reserved" : `Reserved by ${r.reserver_name}` }
                   : group
@@ -324,11 +335,24 @@ export default function SharedList() {
               </button>
             );
             return (
-              <ItemCard key={it.id} item={it} view={view} category={categoryMap[it.category]} currency={currency} hidePrice={hidePrice} status={status}>
+              <ItemCard
+                key={it.id}
+                item={it}
+                view={view}
+                category={categoryMap[it.category]}
+                currency={currency}
+                hidePrice={hidePrice}
+                status={status}
+                badge={
+                  santa?.budget > 0 && it.price > 0 && !r ? (
+                    overBudget(santa, it.price) ? null : <span className="chip-static fits-budget">Fits budget</span>
+                  ) : null
+                }
+              >
                 {isOwner ? null : byMe ? (
                   <>
                     {holdEndsSoon(r) && (
-                      <button className="btn btn-sm btn-primary" onClick={() => renew(r)} title={`Keep this reservation for another ${holdPeriod(config.reservationDays).replace(/^an? /, "")}`}>
+                      <button className="btn btn-sm btn-ghost" onClick={() => renew(r)} title={`Keep this reservation for another ${holdPeriod(config.reservationDays).replace(/^an? /, "")}`}>
                         <RefreshCw size={14} /> Renew
                       </button>
                     )}
@@ -339,7 +363,7 @@ export default function SharedList() {
                       items={[
                         { label: r.purchased ? "Mark as not bought" : "Mark as bought", icon: r.purchased ? Undo2 : Check, onClick: () => togglePurchased(r) },
                         ...(r.purchased ? [] : [{ label: `Keep another ${holdPeriod(config.reservationDays).replace(/^an? /, "")} (${holdLabel(r).toLowerCase()})`, icon: Clock, onClick: () => renew(r) }]),
-                        { label: "Cancel reservation", icon: X, danger: true, onClick: () => unreserve(r) },
+                        { label: "Release (someone else can get it)", icon: X, danger: true, onClick: () => unreserve(r) },
                       ]}
                     />
                   </>

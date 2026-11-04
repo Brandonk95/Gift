@@ -3,6 +3,7 @@ import { pb } from "./pb.js";
 import { applyPrefs, loadLocalPrefs, normalizePrefs, saveLocalPrefs } from "./theme.js";
 
 const AppContext = createContext(null);
+const UNDO_MS = 6000;
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(pb.authStore.isValid ? pb.authStore.record : null);
@@ -17,12 +18,41 @@ export function AppProvider({ children }) {
   const saveTimer = useRef(null);
 
   // Errors stay up longer (and longer still when there's more to read); click to dismiss.
-  const notify = useCallback((message, type = "ok") => {
-    const id = Date.now();
-    const ms = type === "error" ? Math.min(15000, 6000 + message.length * 40) : 3500;
-    setToast({ id, message, type });
+  // `action`: { label, onClick } shows a button in the toast (e.g. Undo).
+  const notify = useCallback((message, type = "ok", action = null) => {
+    const id = Date.now() + Math.random();
+    const ms = type === "error" ? Math.min(15000, 6000 + message.length * 40) : action ? UNDO_MS : 3500;
+    setToast({ id, message, type, action });
     setTimeout(() => setToast((t) => (t && t.id === id ? null : t)), ms);
   }, []);
+
+  // Remove something with a short chance to take it back: `hide` updates the page
+  // now, `commit` does the real delete once the Undo button has gone, and `restore`
+  // puts it back (after Undo, or if the delete fails).
+  const undoable = useCallback(
+    ({ message, hide, restore, commit, failMessage = "Couldn't finish that. It's back." }) => {
+      hide();
+      let undone = false;
+      const timer = setTimeout(async () => {
+        if (undone) return;
+        try {
+          await commit();
+        } catch (err) {
+          restore();
+          notify(err?.message ? `${failMessage} (${err.message})` : failMessage, "error");
+        }
+      }, UNDO_MS + 300);
+      notify(message, "ok", {
+        label: "Undo",
+        onClick: () => {
+          undone = true;
+          clearTimeout(timer);
+          restore();
+        },
+      });
+    },
+    [notify]
+  );
 
   useEffect(() => {
     const unsub = pb.authStore.onChange(() => {
@@ -86,11 +116,23 @@ export function AppProvider({ children }) {
   );
 
   return (
-    <AppContext.Provider value={{ user, config, notify, prefs, setPrefs }}>
+    <AppContext.Provider value={{ user, config, notify, undoable, prefs, setPrefs }}>
       {children}
       {toast && (
-        <div className={`toast toast-${toast.type}`} role={toast.type === "error" ? "alert" : "status"} onClick={() => setToast(null)}>
-          {toast.message}
+        <div className={`toast toast-${toast.type} ${toast.action ? "has-action" : ""}`} role={toast.type === "error" ? "alert" : "status"} onClick={() => !toast.action && setToast(null)}>
+          <span>{toast.message}</span>
+          {toast.action && (
+            <button
+              type="button"
+              className="toast-action"
+              onClick={() => {
+                toast.action.onClick();
+                setToast(null);
+              }}
+            >
+              {toast.action.label}
+            </button>
+          )}
         </div>
       )}
     </AppContext.Provider>

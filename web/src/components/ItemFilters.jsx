@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { PRIORITIES } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
 import { SearchInput, ViewToggle } from "./ui.jsx";
+import Emoji from "./Emoji.jsx";
 
 const SORTS = {
   custom: { label: "My order", fn: (a, b) => (a.sort || 0) - (b.sort || 0) || a.created.localeCompare(b.created) },
@@ -35,7 +36,8 @@ export function useItemFilters(items, categoryMap, { hidePrice = false, defaultS
   const [query, setQuery] = useState("");
   // the layout toggle updates your saved preference, so it sticks everywhere
   const [localView, setLocalView] = useState("");
-  const activeView = localView || friendView || prefs.view;
+  const picked = localView || friendView || prefs.view;
+  const activeView = picked === "compact" ? "list" : picked;
   const setView = (view) => (friendView ? setLocalView(view) : setPrefs({ view }));
 
   const usedCategories = useMemo(() => {
@@ -81,7 +83,7 @@ export function useItemFilters(items, categoryMap, { hidePrice = false, defaultS
             </button>
             {usedCategories.map((c) => (
               <button key={c.id} className={`chip ${cat === c.id ? "active" : ""}`} onClick={() => setCat(c.id)}>
-                {c.icon} {c.name} <span className="chip-count">{items.filter((i) => i.category === c.id).length}</span>
+                <Emoji e={c.icon} /> {c.name} <span className="chip-count">{items.filter((i) => i.category === c.id).length}</span>
               </button>
             ))}
             {hasUncategorized && (

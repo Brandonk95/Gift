@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ImagePlus, Info, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { errorMessage, itemImage, pb } from "../lib/pb.js";
-import { PRIORITIES, findUrl, hostname } from "../lib/format.js";
+import { PRIORITIES, findUrl, hostname, isWishlistUrl } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "./Emoji.jsx";
 
 // Add or edit a gift. `categories` is the list visible to the user; new ones
 // created inline are reported back through `onCategoryCreated`.
@@ -57,6 +58,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
   const autofill = async (raw = form.url) => {
     const url = findUrl(raw) || (raw.trim() && !/\s/.test(raw.trim()) ? `https://${raw.trim().replace(/^\/+/, "")}` : "");
     if (!url) return setError("Paste a full product link, like https://store.com/product, then press Autofill.");
+    if (isWishlistUrl(url)) return setError("That's a wish list, not a single gift. Close this window and use “Add many” next to the add bar to bring in every gift on it.");
     setFetching(true);
     setError("");
     setFound(null);
@@ -286,7 +288,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
                     <option value="">No category</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.icon} {c.name}
+                        <Emoji e={c.icon} /> {c.name}
                       </option>
                     ))}
                   </select>

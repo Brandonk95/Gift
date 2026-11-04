@@ -48,6 +48,8 @@ routerAdd(
         joined: members.filter((m) => m.getString("user")).length,
         invited: members.filter((m) => !m.getString("user")).length,
         matchName: match ? x.memberName(e.app, match) : "",
+        // who you buy for, so their list and your shopping list can flag gifts over the budget
+        matchUser: match ? match.getString("user") : "",
         created: ex.getString("created"),
       });
     }

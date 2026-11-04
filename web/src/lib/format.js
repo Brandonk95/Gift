@@ -22,9 +22,9 @@ export function formatPrice(value, currency = "USD", { showZero = false } = {}) 
   if (value === null || value === undefined || value === "") return "";
   if (Number(value) === 0 && !showZero) return "";
   try {
-    return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(Number(value));
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, ...(Number.isInteger(Number(value)) ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {}) }).format(Number(value));
   } catch {
-    return `${Number(value).toFixed(2)} ${currency}`;
+    return `${Number.isInteger(Number(value)) ? Number(value) : Number(value).toFixed(2)} ${currency}`;
   }
 }
 

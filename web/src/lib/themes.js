@@ -1,6 +1,7 @@
 import { pb } from "./pb.js";
+import { bannerImage } from "./banners.js";
 
-// Banner themes for lists (lists.theme). The patterns live in styles.css (.theme-*).
+// Banner themes for lists (lists.theme). The art is drawn in banners.js; styles.css (.theme-*) has a base color.
 export const THEMES = {
   snow: { label: "Winter", hint: "Snowfall on deep blue" },
   confetti: { label: "Party", hint: "Bright confetti" },
@@ -17,7 +18,7 @@ export const OCCASION_THEME = { christmas: "snow", birthday: "confetti", baby: "
 export function listCover(list, thumb = "1200x400") {
   if (!list) return null;
   if (list.cover) return { image: pb.files.getURL(list, list.cover, { thumb }) };
-  if (THEMES[list.theme]) return { theme: list.theme };
+  if (THEMES[list.theme]) return { theme: list.theme, seed: list.id || list.theme };
   return null;
 }
 
@@ -26,6 +27,6 @@ export function coverProps(cover, extraClass = "") {
   if (!cover) return null;
   return {
     className: `${extraClass} ${cover.theme ? `theme-${cover.theme}` : "cover-photo"}`.trim(),
-    style: cover.image ? { backgroundImage: `url("${cover.image}")` } : undefined,
+    style: cover.image ? { backgroundImage: `url("${cover.image}")` } : { backgroundImage: bannerImage(cover.theme, cover.seed || cover.theme), backgroundSize: "cover", backgroundPosition: "center" },
   };
 }

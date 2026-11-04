@@ -37,11 +37,12 @@ import { errorMessage, pb } from "../lib/pb.js";
 import { findUrl, findUrls, formatPrice, isWishlistUrl } from "../lib/format.js";
 import { copyItem, duplicateList, exportListCsv } from "../lib/listActions.js";
 import { useApp } from "../lib/app.jsx";
+import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
 
 
 export default function ListEditor() {
   const { id } = useParams();
-  const { user, config, notify } = useApp();
+  const { user, config, notify, undoable } = useApp();
   const navigate = useNavigate();
   const [list, setList] = useState(null);
   const [items, setItems] = useState([]);
@@ -123,7 +124,8 @@ export default function ListEditor() {
         }}
       />
     );
-  if (!list) return <div className="loading">Loading…</div>;
+  if (!list) return <CardsSkeleton header />;
+
 
   const replaceItem = (saved) => setItems((prev) => (prev.some((i) => i.id === saved.id) ? prev.map((i) => (i.id === saved.id ? saved : i)) : [...prev, saved]));
 
@@ -166,16 +168,15 @@ export default function ListEditor() {
     }
   };
 
-  const removeItem = async (item) => {
-    if (!confirm(`Remove "${item.name}" from your list?`)) return;
-    try {
-      await pb.collection("items").delete(item.id);
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
-      notify("Gift removed");
-    } catch (err) {
-      notify(errorMessage(err, `remove “${item.name}”`), "error");
-    }
-  };
+  // gone right away, with a few seconds to undo before it's really deleted
+  const removeItem = (item) =>
+    undoable({
+      message: `Deleted “${item.name}”`,
+      hide: () => setItems((prev) => prev.filter((i) => i.id !== item.id)),
+      restore: () => setItems((prev) => (prev.some((i) => i.id === item.id) ? prev : [...prev, item])),
+      commit: () => pb.collection("items").delete(item.id),
+      failMessage: `Couldn't delete “${item.name}”.`,
+    });
 
   const duplicateItem = async (item) => {
     try {
@@ -312,7 +313,7 @@ export default function ListEditor() {
 
       <form className="quick-add" onSubmit={quickAdd}>
         <Plus size={18} className="quick-add-icon" />
-        <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="Add a gift — type a name, or paste a product link" aria-label="Quick add a gift" />
+        <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="Add a gift or paste a link" aria-label="Quick add a gift" />
         <button className="btn btn-primary btn-sm" disabled={!quick.trim()}>
           Add
         </button>
@@ -335,11 +336,11 @@ export default function ListEditor() {
       {sort === "custom" && filtering && <p className="muted small">Clear the search and category filter to drag gifts into a new order.</p>}
 
       {items.length === 0 ? (
-        <div className="empty">
-          <div className="empty-icon">✨</div>
-          <h3>Your list is empty</h3>
-          <p className="muted">Type a gift name above, or paste a link and we'll grab the picture and price.</p>
-        </div>
+        <EmptyState art="gift" title="Add your first gift" text="Type a gift's name in the box above, or paste a link from any store and we'll fill in the picture and price.">
+          <button className="btn btn-secondary" onClick={() => setBulk("")}>
+            <ListPlus size={15} /> Add many at once
+          </button>
+        </EmptyState>
       ) : visible.length === 0 ? (
         <div className="empty empty-sm">
           <p className="muted">No gifts match.</p>
@@ -361,8 +362,8 @@ export default function ListEditor() {
               dragProps={dragPropsFor(it)}
               onToggleStar={() => patchItem(it, { priority: it.priority === "high" ? "medium" : "high" }, null, "update the priority")}
             >
-              <button className="btn btn-ghost btn-sm" onClick={() => setEditing({ item: it })}>
-                <Pencil size={14} /> Edit
+              <button className="btn btn-ghost btn-sm" onClick={() => setEditing({ item: it })} aria-label={`Edit ${it.name}`} title="Edit">
+                <Pencil size={14} /> <span>Edit</span>
               </button>
               <Menu
                 items={[

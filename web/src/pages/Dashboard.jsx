@@ -12,6 +12,8 @@ import { duplicateList } from "../lib/listActions.js";
 import { listColor } from "../lib/theme.js";
 import { coverProps, listCover } from "../lib/themes.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "../components/Emoji.jsx";
+import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
 
 // Occasions in the next 60 days: your lists, lists you follow, and Secret Santas
 function ComingUp({ lists, follows, userId }) {
@@ -34,7 +36,7 @@ function ComingUp({ lists, follows, userId }) {
         out.push({ key: `f${l.id}`, icon: <ListIcon list={l} size="sm" />, title: l.title, who: l.owner_name || "A friend", date: l.event_date, to: `/s/${follow.token}` });
     for (const x of exchanges)
       if (soon(x.event_date))
-        out.push({ key: `x${x.id}`, icon: <span className="list-icon list-icon-sm santa-icon">🎅</span>, title: x.name, who: x.matchName ? `You have ${x.matchName}` : "Secret Santa", date: x.event_date, to: `/exchanges/${x.id}` });
+        out.push({ key: `x${x.id}`, icon: <span className="list-icon list-icon-sm santa-icon"><Emoji e="🎅" /></span>, title: x.name, who: "Secret Santa", date: x.event_date, to: `/exchanges/${x.id}` });
     return out.sort((a, b) => daysUntil(a.date) - daysUntil(b.date)).slice(0, 8);
   }, [lists, follows, exchanges, userId]);
 
@@ -277,7 +279,7 @@ export default function Dashboard() {
         <div>
           <p className="eyebrow">{greeting()}</p>
           <h1>{(user.name || "").trim().split(/\s+/)[0] || "Welcome back"}</h1>
-          <p className="muted">Your wish lists, and the ones friends have shared with you.</p>
+          <p className="muted dash-sub">Your wish lists, and the ones friends have shared with you.</p>
         </div>
         <button className="btn btn-primary" onClick={() => setForm({})}>
           <Plus size={16} /> New list
@@ -285,6 +287,7 @@ export default function Dashboard() {
       </div>
 
       <VerifyBanner />
+      <PastEvents lists={activeLists} onArchive={toggleArchive} />
       {error && <div className="alert alert-error">{error}</div>}
       {lists !== null && <GettingStarted lists={lists.filter((l) => !l.private)} counts={counts} onNewList={() => setForm({})} />}
       <ComingUp lists={lists} follows={follows} userId={user.id} />
@@ -305,23 +308,18 @@ export default function Dashboard() {
       </div>
 
       {lists === null ? (
-        <div className="loading">Loading…</div>
+        <CardsSkeleton kind="lists" count={3} />
       ) : activeLists.length === 0 ? (
-        <button className="new-list-card" onClick={() => setForm({})}>
-          <Plus size={22} />
-          <span>
-            <strong>Create your first list</strong>
-            <span className="muted small">Christmas, birthday, wedding — anything.</span>
-          </span>
-        </button>
+        <EmptyState art="list" title="Make your first wish list" text="Christmas, a birthday, a wedding: anything. Add gifts, then share the link with family and friends." small>
+          <button className="btn btn-primary" onClick={() => setForm({})}>
+            <Plus size={16} /> New list
+          </button>
+        </EmptyState>
       ) : (
         <div className="list-grid">
           {activeLists.map((l) => (
             <ListCard key={l.id} list={l} to={`/lists/${l.id}`} meta={`${counts[l.id] || 0} gift${counts[l.id] === 1 ? "" : "s"}`} menu={menuFor(l)} />
           ))}
-          <button className="new-list-card compact" onClick={() => setForm({})}>
-            <Plus size={20} /> New list
-          </button>
         </div>
       )}
 
@@ -371,7 +369,7 @@ export default function Dashboard() {
         </h2>
       </div>
       {follows === null ? (
-        <div className="loading">Loading…</div>
+        <CardsSkeleton kind="lists" count={2} />
       ) : follows.length === 0 ? (
         <div className="empty-hint">
           <span className="empty-hint-icon">💌</span>
@@ -452,7 +450,34 @@ export function ListCard({ list, to, meta, menu, dim }) {
   );
 }
 
+// Lists whose day was more than a week ago: offer to archive them so the dashboard stays current
+function PastEvents({ lists, onArchive }) {
+  const [hidden, setHidden] = useState(false);
+  const past = lists.filter((l) => {
+    const d = daysUntil(l.event_date);
+    return d !== null && d < -7;
+  });
+  if (hidden || !past.length) return null;
+  const l = past[0];
+  return (
+    <div className="verify-banner past-banner">
+      <Archive size={20} />
+      <div>
+        <strong>{past.length === 1 ? `“${l.title}” is over.` : `${past.length} of your lists are for days that have passed.`}</strong>
+        <span className="muted">Mark what you received and send your thank-yous from the list, then archive it to keep this page tidy. Archived lists stay under Archived.</span>
+      </div>
+      <button className="btn btn-sm btn-secondary" onClick={() => past.forEach((p) => onArchive(p))}>
+        Archive {past.length === 1 ? "it" : "them"}
+      </button>
+      <button className="icon-btn icon-btn-sm" aria-label="Dismiss" title="Dismiss" onClick={() => setHidden(true)}>
+        <X size={14} />
+      </button>
+    </div>
+  );
+}
+
 function greeting() {
+
   const h = new Date().getHours();
   return h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
 }

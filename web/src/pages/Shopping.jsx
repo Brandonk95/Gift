@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, Clock, Download, ExternalLink, HandCoins, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock, Download, ExternalLink, HandCoins, LogOut, RefreshCw, Undo2 } from "lucide-react";
+import Emoji from "../components/Emoji.jsx";
+import { EmptyState, RowsSkeleton } from "../components/Placeholders.jsx";
+import { Menu } from "../components/ui.jsx";
+import { overBudget, santaFor, useMyMatches } from "../lib/santa.js";
 import { ListIcon } from "../components/ListHeader.jsx";
 import { LoadError } from "./NotFound.jsx";
 import { errorMessage, itemImage, pb, shareHeaders } from "../lib/pb.js";
@@ -10,7 +14,8 @@ import { useApp } from "../lib/app.jsx";
 
 // Everything the current user has reserved, across all lists shared with them.
 export default function Shopping() {
-  const { user, config, notify } = useApp();
+  const { user, config, notify, undoable } = useApp();
+  const matches = useMyMatches(user.id);
   const [groups, setGroups] = useState(null);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -86,7 +91,15 @@ export default function Shopping() {
         }}
       />
     );
-  if (!groups) return <div className="loading">Loading…</div>;
+  if (!groups)
+    return (
+      <div className="page">
+        <div className="page-head">
+          <h1>Shopping list</h1>
+        </div>
+        <RowsSkeleton count={4} />
+      </div>
+    );
 
   const update = (g, saved) =>
     setGroups((prev) => prev.map((x) => (x === g ? { ...x, reservations: x.reservations.map((r) => (r.id === saved.id ? { ...saved, expand: r.expand } : r)) } : x)));
@@ -122,18 +135,16 @@ export default function Shopping() {
     }
   };
 
-  const cancel = async (g, r) => {
-    if (!confirm(`Cancel your reservation for “${r.expand.item.name}”? Someone else will be able to reserve it.`)) return;
-    try {
-      await pb.collection("reservations").delete(r.id, shareHeaders(g.token));
-      setGroups((prev) =>
-        prev.map((x) => (x === g ? { ...x, reservations: x.reservations.filter((y) => y.id !== r.id) } : x)).filter((x) => x.reservations.length || x.groupGifts.length)
-      );
-      notify("Reservation cancelled");
-    } catch (err) {
-      notify(errorMessage(err, "cancel this reservation"), "error");
-    }
-  };
+  // Release: gone from the page now, with a few seconds to undo before it's really released
+  const release = (g, r) =>
+    undoable({
+      message: `Released “${r.expand.item.name}”. Someone else can get it now.`,
+      hide: () => setGroups((prev) => prev.map((x) => (x.list.id === g.list.id ? { ...x, reservations: x.reservations.filter((y) => y.id !== r.id) } : x))),
+      restore: () =>
+        setGroups((prev) => prev.map((x) => (x.list.id === g.list.id && !x.reservations.some((y) => y.id === r.id) ? { ...x, reservations: [...x.reservations, r] } : x))),
+      commit: () => pb.collection("reservations").delete(r.id, shareHeaders(g.token)),
+      failMessage: `Couldn't release “${r.expand.item.name}”. It's still yours.`,
+    });
 
   const exportCsv = () => {
     const rows = [["For", "List", "Gift", "Price", "Quantity", "Size", "Color", "Link", "Bought"]];
@@ -162,34 +173,33 @@ export default function Shopping() {
       </div>
 
       {count === 0 ? (
-        <div className="empty">
-          <div className="empty-icon">🛍️</div>
-          <h3>Nothing reserved yet</h3>
-          <p className="muted">When you open a friend's list and click “I'll get this”, the gift shows up here.</p>
+        <EmptyState art="bag" title="Nothing reserved yet" text="When you open a friend's list and press “I'll get this”, the gift shows up here.">
           <Link to="/" className="btn btn-primary">
-            Go to your dashboard
+            See your friends' lists
           </Link>
-        </div>
+        </EmptyState>
       ) : (
         <>
-          <div className="stats">
+          <div className="shop-strip">
             {Object.entries(totals).map(([cur, t]) => (
-              <div key={cur} className="stat">
-                <span className="stat-label">Progress{Object.keys(totals).length > 1 ? ` (${cur})` : ""}</span>
-                <span className="stat-value">
-                  {t.boughtCount}/{t.count} bought
-                </span>
-                <div className="progress">
+              <div key={cur} className="shop-strip-progress">
+                <div className="progress" role="progressbar" aria-valuemin={0} aria-valuemax={t.count} aria-valuenow={t.boughtCount} aria-label="Gifts bought">
                   <span style={{ width: `${t.count ? (t.boughtCount / t.count) * 100 : 0}%` }} />
                 </div>
-                {t.all > 0 && (
-                  <span className="muted small">
-                    {formatPrice(t.bought, cur, { showZero: true })} of {formatPrice(t.all, cur)} spent
-                  </span>
-                )}
+                <span className="small">
+                  <strong>
+                    {t.boughtCount} of {t.count} bought
+                  </strong>
+                  {t.all > 0 && (
+                    <span className="muted">
+                      {" "}
+                      · {formatPrice(t.bought, cur, { showZero: true })} of {formatPrice(t.all, cur)}
+                    </span>
+                  )}
+                </span>
               </div>
             ))}
-            <label className="toggle stat-toggle">
+            <label className="toggle">
               <input type="checkbox" checked={hideBought} onChange={(e) => setHideBought(e.target.checked)} /> Hide bought
             </label>
           </div>
@@ -199,12 +209,20 @@ export default function Shopping() {
             const rows = hideBought ? g.reservations.filter((r) => !r.purchased) : g.reservations;
             if (!rows.length && !g.groupGifts.length) return null;
             const cd = countdown(g.list.event_date);
+            const santa = !g.list.hide_prices ? santaFor(matches, g.list.owner) : null;
             return (
               <section key={g.list.id} className="shop-group">
                 <div className="shop-group-head">
                   <ListIcon list={g.list} size="sm" />
                   <div className="shop-group-title">
-                    <strong>For {g.list.owner_name || "a friend"}</strong>
+                    <strong>
+                      For {g.list.owner_name || "a friend"}
+                      {santa && (
+                        <span className="chip-static santa-tag">
+                          <Emoji e="🎅" /> Secret Santa{santa.budget > 0 ? ` · ${formatPrice(santa.budget, santa.currency || cur)} budget` : ""}
+                        </span>
+                      )}
+                    </strong>
                     <span className="muted small">
                       {g.list.title}
                       {g.list.event_date && ` · ${formatDate(g.list.event_date)}`}
@@ -220,13 +238,15 @@ export default function Shopping() {
                     const it = r.expand.item;
                     const img = itemImage(it, "100x100f");
                     const price = g.list.hide_prices ? "" : formatPrice((it.price || 0) * (it.quantity || 1), cur);
+                    const over = overBudget(santa, (it.price || 0) * (it.quantity || 1));
+                    const soon = !r.purchased && r.expires && holdEndsSoon(r);
                     return (
                       <div key={r.id} className={`shop-row ${r.purchased ? "done" : ""}`}>
                         <label className="check">
                           <input type="checkbox" checked={!!r.purchased} onChange={() => togglePurchased(g, r)} aria-label={`Bought ${it.name}`} />
                           <span className="check-box" />
                         </label>
-                        <span className="shop-thumb">{img ? <img src={img} alt="" referrerPolicy="no-referrer" /> : "🎁"}</span>
+                        <Thumb src={img} />
                         <div className="shop-info">
                           <span className="shop-name">{it.name}</span>
                           <span className="muted small">
@@ -237,19 +257,28 @@ export default function Shopping() {
                               </a>
                             )}
                           </span>
-                          {!r.purchased && r.expires && (
-                            <span className={`shop-hold small ${holdEndsSoon(r) ? "soon" : ""}`}>
+                          {over && (
+                            <span className="shop-warn small">
+                              <AlertTriangle size={12} /> Over the {formatPrice(santa.budget, santa.currency || cur)} Secret Santa budget
+                            </span>
+                          )}
+                          {soon && (
+                            <span className="shop-hold small">
                               <Clock size={12} /> {holdLabel(r)}
-                              <button className="link-btn" onClick={() => renew(g, r)}>
+                              <button className="btn btn-ghost btn-xs" onClick={() => renew(g, r)}>
                                 <RefreshCw size={12} /> Renew
                               </button>
                             </span>
                           )}
                         </div>
                         {price && <span className="shop-price">{price}</span>}
-                        <button className="icon-btn" title="Cancel reservation" aria-label={`Cancel reservation for ${it.name}`} onClick={() => cancel(g, r)}>
-                          <X size={16} />
-                        </button>
+                        <Menu
+                          label={`Options for ${it.name}`}
+                          items={[
+                            { label: `Keep it another ${holdPeriod(config.reservationDays).replace(/^an? /, "")}`, icon: RefreshCw, hidden: !!r.purchased || !r.expires, onClick: () => renew(g, r) },
+                            { label: "Release (someone else can get it)", icon: Undo2, danger: true, onClick: () => release(g, r) },
+                          ]}
+                        />
                       </div>
                     );
                   })}
@@ -265,7 +294,7 @@ export default function Shopping() {
                         <span className="check-spacer" title="Group gift">
                           <HandCoins size={18} />
                         </span>
-                        <span className="shop-thumb">{img ? <img src={img} alt="" referrerPolicy="no-referrer" /> : "🎁"}</span>
+                        <Thumb src={img} />
                         <div className="shop-info">
                           <span className="shop-name">{it.name}</span>
                           <span className="muted small">
@@ -274,9 +303,7 @@ export default function Shopping() {
                           </span>
                         </div>
                         {money && gg.pledge.amount > 0 && <span className="shop-price">{formatPrice(gg.pledge.amount, cur)}</span>}
-                        <button className="icon-btn" title="Leave this group gift" aria-label={`Leave the group gift for ${it.name}`} onClick={() => leaveGroup(g, gg)}>
-                          <X size={16} />
-                        </button>
+                        <Menu label={`Options for ${it.name}`} items={[{ label: "Leave this group gift", icon: LogOut, danger: true, onClick: () => leaveGroup(g, gg) }]} />
                       </div>
                     );
                   })}
@@ -288,4 +315,10 @@ export default function Shopping() {
       )}
     </div>
   );
+}
+
+// A gift's small picture, or the gift box when there's none or it won't load
+function Thumb({ src }) {
+  const [broken, setBroken] = useState(false);
+  return <span className="shop-thumb">{src && !broken ? <img src={src} alt="" referrerPolicy="no-referrer" onError={() => setBroken(true)} /> : <Emoji e="🎁" />}</span>;
 }

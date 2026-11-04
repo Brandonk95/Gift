@@ -35,10 +35,9 @@ export const MODES = {
 };
 
 export const VIEWS = {
-  grid: { label: "Cards" },
-  compact: { label: "Compact" },
-  list: { label: "List" },
-  board: { label: "Board" },
+  grid: { label: "Cards", hint: "Cards with pictures" },
+  list: { label: "List", hint: "One gift per row" },
+  board: { label: "Board", hint: "Whole pictures, staggered" },
 };
 
 // Per-list color tags (lists.color)
@@ -65,6 +64,7 @@ export function normalizePrefs(p) {
   if (!FONTS[out.font]) out.font = DEFAULT_PREFS.font;
   if (!RADII[out.radius]) out.radius = DEFAULT_PREFS.radius;
   if (!MODES[out.mode]) out.mode = DEFAULT_PREFS.mode;
+  if (out.view === "compact") out.view = "list"; // the old Compact layout became List
   if (!VIEWS[out.view]) out.view = DEFAULT_PREFS.view;
   return out;
 }

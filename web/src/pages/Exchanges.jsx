@@ -6,6 +6,8 @@ import { LoadError } from "./NotFound.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { countdown, dateOnly, formatDate, formatPrice } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "../components/Emoji.jsx";
+import { EmptyArt } from "../components/Placeholders.jsx";
 
 // Secret Santa: the exchanges you organize or are part of.
 export default function Exchanges() {
@@ -44,7 +46,7 @@ export default function Exchanges() {
 
       {exchanges.length === 0 ? (
         <div className="empty santa-empty">
-          <div className="empty-icon">🎁</div>
+          <EmptyArt art="santa" />
           <h2>Start a gift exchange</h2>
           <ol className="santa-steps">
             <li>Create an exchange and set a budget and date.</li>
@@ -74,7 +76,7 @@ function ExchangeCard({ x }) {
   return (
     <div className="list-card">
       <Link to={`/exchanges/${x.id}`} className="list-card-link">
-        <span className="list-icon list-icon-md santa-icon">🎅</span>
+        <span className="list-icon list-icon-md santa-icon"><Emoji e="🎅" /></span>
         <div className="list-card-body">
           <h3>{x.name}</h3>
           <p className="muted small">

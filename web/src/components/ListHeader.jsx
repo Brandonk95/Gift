@@ -2,12 +2,13 @@ import { CalendarDays } from "lucide-react";
 import { countdown, formatDate, occasion } from "../lib/format.js";
 import { listColor } from "../lib/theme.js";
 import { coverProps, listCover } from "../lib/themes.js";
+import Emoji from "./Emoji.jsx";
 
 export function ListIcon({ list, size = "md" }) {
   const color = listColor(list);
   return (
     <span className={`list-icon list-icon-${size}`} style={color ? { "--list-color": color } : undefined}>
-      {list.emoji || occasion(list.occasion).icon}
+      <Emoji e={list.emoji || occasion(list.occasion).icon} />
     </span>
   );
 }

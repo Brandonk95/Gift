@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { Copy, LogOut, Pencil, Plus, RefreshCw, Share2, Trash2, UserMinus, Users } from "lucide-react";
+import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
 import Modal from "../components/Modal.jsx";
 import { Avatar } from "../components/Layout.jsx";
 import { Menu } from "../components/ui.jsx";
@@ -8,6 +9,7 @@ import { ListCard } from "./Dashboard.jsx";
 import NotFound, { LoadError } from "./NotFound.jsx";
 import { errorMessage, pb, shareHeaders } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "../components/Emoji.jsx";
 
 export const inviteUrl = (g) => `${window.location.origin}/g/${g.invite_token}`;
 
@@ -56,7 +58,7 @@ export default function Groups() {
   }, [reloadKey, user.id]);
 
   if (error) return <LoadError message={error} onRetry={() => (setError(""), setReloadKey((k) => k + 1))} />;
-  if (!groups) return <div className="loading">Loading…</div>;
+  if (!groups) return <CardsSkeleton kind="lists" count={2} />;
 
   return (
     <div className="page">
@@ -73,19 +75,11 @@ export default function Groups() {
       </div>
 
       {groups.length === 0 ? (
-        <div className="empty santa-empty">
-          <div className="empty-icon">🏡</div>
-          <h2>Start a group</h2>
-          <ol className="santa-steps">
-            <li>Make a group, like “Family” or “Work friends”.</li>
-            <li>Send everyone its invite link.</li>
-            <li>Everyone's lists appear on everyone's dashboard, including lists made later.</li>
-          </ol>
-          <p className="muted small">Private ideas boards are never shared. Reservations stay secret as usual.</p>
+        <EmptyState art="group" title="Start a group" text="Make one for your family or friends, send everyone the invite link, and everyone's wish lists show up for everyone.">
           <button className="btn btn-primary" onClick={() => setForm(true)}>
             <Plus size={16} /> New group
           </button>
-        </div>
+        </EmptyState>
       ) : (
         <div className="list-grid">
           {groups.map((g) => (
@@ -93,7 +87,7 @@ export default function Groups() {
               <Link to={`/groups/${g.id}`} className="list-card-link">
                 <span className="list-card-banner plain" aria-hidden="true" />
                 <div className="list-card-body">
-                  <span className="list-icon list-icon-md">{g.emoji || "🏡"}</span>
+                  <span className="list-icon list-icon-md"><Emoji e={g.emoji || "🏡"} /></span>
                   <h3>{g.name}</h3>
                   <p className="muted small">{g.owner === user.id ? "You made this group" : `Made by ${g.owner_name || "a friend"}`}</p>
                   <div className="list-card-meta">
@@ -144,7 +138,7 @@ function GroupForm({ group, onClose, onSaved }) {
           <div className="emoji-picker">
             {EMOJIS.map((em) => (
               <button type="button" key={em} className={`emoji-opt ${em === emoji ? "active" : ""}`} onClick={() => setEmoji(em)} aria-label={em} aria-pressed={em === emoji}>
-                {em}
+                <Emoji e={em} />
               </button>
             ))}
           </div>
@@ -174,6 +168,8 @@ export function Group() {
   const [error, setError] = useState("");
   const [missing, setMissing] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [removing, setRemoving] = useState(null); // the member you're about to remove
 
   useEffect(() => {
     let alive = true;
@@ -210,13 +206,13 @@ export function Group() {
 
   if (missing) return <NotFound title="Group not found" message="This group doesn't exist anymore, or you're not in it." />;
   if (error) return <LoadError message={error} onRetry={() => window.location.reload()} />;
-  if (!group) return <div className="loading">Loading…</div>;
+  if (!group) return <CardsSkeleton kind="lists" count={2} />;
 
   const mine = group.owner === user.id;
   const me = members.find((m) => m.user === user.id);
 
   const removeMember = async (m) => {
-    if (!confirm(`Remove ${m.name || "this person"} from “${group.name}”? Their lists leave your dashboards, and yours leave theirs.`)) return;
+    setRemoving(null);
     try {
       await pb.collection("group_members").delete(m.id);
       setMembers((ms) => ms.filter((x) => x.id !== m.id));
@@ -274,27 +270,16 @@ export function Group() {
             <Link to="/groups">Groups</Link>
           </p>
           <h1>
-            {group.emoji || "🏡"} {group.name}
+            <Emoji e={group.emoji || "🏡"} /> {group.name}
           </h1>
           <p className="muted">Everyone here sees everyone's wish lists, including new ones. Private ideas boards stay private.</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={() => copyInvite(group, notify)}>
+          <button className="btn btn-primary" onClick={() => setInviting(true)}>
             <Share2 size={16} /> Invite people
           </button>
           <Menu items={menu} />
         </div>
-      </div>
-
-      <div className="panel invite-panel">
-        <span className="muted small">Invite link</span>
-        <div className="invite-row">
-          <input readOnly value={inviteUrl(group)} onFocus={(e) => e.target.select()} aria-label="Invite link" />
-          <button className="btn btn-secondary" onClick={() => copyInvite(group, notify)}>
-            <Copy size={15} /> Copy
-          </button>
-        </div>
-        <p className="muted small">Anyone with this link can join. {mine ? "Make a new one from the ⋯ menu if it ends up in the wrong hands." : ""}</p>
       </div>
 
       <div className="section-head">
@@ -311,11 +296,7 @@ export function Group() {
               {m.user === user.id && <span className="badge">you</span>}
               {m.user === group.owner && <span className="badge">made the group</span>}
             </span>
-            {mine && m.user !== user.id && (
-              <button className="icon-btn" title={`Remove ${m.name}`} aria-label={`Remove ${m.name}`} onClick={() => removeMember(m)}>
-                <UserMinus size={16} />
-              </button>
-            )}
+            {mine && m.user !== user.id && <Menu label={`Options for ${m.name || "this person"}`} items={[{ label: "Remove from group", icon: UserMinus, danger: true, onClick: () => setRemoving(m) }]} />}
           </li>
         ))}
       </ul>
@@ -343,8 +324,40 @@ export function Group() {
         </div>
       )}
 
+      {inviting && (
+        <Modal title={`Invite people to ${group.name}`} onClose={() => setInviting(false)}>
+          <div className="form">
+            <p className="muted small">Send this link to everyone you want in the group. When they join, everyone's wish lists show up for everyone.</p>
+            <div className="invite-row">
+              <input readOnly value={inviteUrl(group)} onFocus={(e) => e.target.select()} aria-label="Invite link" />
+              <button className="btn btn-primary" onClick={() => copyInvite(group, notify)}>
+                <Copy size={15} /> {navigator.share && matchMedia("(pointer: coarse)").matches ? "Share" : "Copy"}
+              </button>
+            </div>
+            <p className="muted small">Anyone with this link can join. {mine ? "If it ends up in the wrong hands, make a new one from the ⋯ menu." : ""}</p>
+          </div>
+        </Modal>
+      )}
+      {removing && (
+        <Modal title={`Remove ${removing.name || "this person"}?`} onClose={() => setRemoving(null)}>
+          <div className="form">
+            <p>
+              {removing.name || "They"} will leave “{group.name}”. Their lists leave your dashboards, and yours leave theirs. You can invite them again later.
+            </p>
+            <div className="form-actions">
+              <button type="button" className="btn btn-ghost" onClick={() => setRemoving(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn btn-danger" onClick={() => removeMember(removing)}>
+                <UserMinus size={15} /> Remove from group
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {editing && (
         <GroupForm
+
           group={group}
           onClose={() => setEditing(false)}
           onSaved={(g) => {
@@ -402,7 +415,7 @@ export function JoinGroup() {
 
   return (
     <div className="auth-card card join-card">
-      <div className="join-icon">{info.emoji || "🏡"}</div>
+      <div className="join-icon"><Emoji e={info.emoji || "🏡"} /></div>
       <p className="eyebrow">Group invite</p>
       <h1>{info.name}</h1>
       <p className="muted">

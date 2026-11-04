@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Ban, Calendar, Check, Copy, EyeOff, Gift, LogOut, Mail, Pencil, PartyPopper, Shuffle, Trash2, Wallet, X } from "lucide-react";
+import { Ban, Calendar, Check, Copy, Eye, EyeOff, Gift, LogOut, Mail, Pencil, PartyPopper, Shuffle, Trash2, Users, Wallet, X } from "lucide-react";
 import Modal from "../components/Modal.jsx";
 import SantaMessages from "../components/SantaMessages.jsx";
 import { Menu } from "../components/ui.jsx";
@@ -9,6 +9,7 @@ import { LoadError } from "./NotFound.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { countdown, formatDate, formatPrice } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
+import Emoji from "../components/Emoji.jsx";
 
 export default function Exchange() {
   const { id } = useParams();
@@ -21,6 +22,7 @@ export default function Exchange() {
   const [editing, setEditing] = useState(false);
   const [rulesFor, setRulesFor] = useState(null);
   const [drawing, setDrawing] = useState(false);
+  const [matchShown, setMatchShown] = useState(false); // your match stays covered until you tap
 
   useEffect(() => {
     let alive = true;
@@ -128,7 +130,7 @@ export default function Exchange() {
     <div className="page santa-page">
       <section className="list-header santa-header">
         <div className="list-header-main">
-          <span className="list-icon list-icon-lg santa-icon">🎅</span>
+          <span className="list-icon list-icon-lg santa-icon"><Emoji e="🎅" /></span>
           <div className="list-header-body">
             <p className="eyebrow">Secret Santa · {x.isOrganizer ? "you're organizing" : `organized by ${x.organizer}`}</p>
             <h1>{x.name}</h1>
@@ -144,7 +146,9 @@ export default function Exchange() {
                   <Wallet size={14} /> {budget} budget
                 </span>
               )}
-              <span>{joined.length} joined</span>
+              <span>
+                <Users size={14} /> {joined.length} joined
+              </span>
             </div>
           </div>
           {x.isOrganizer && (
@@ -156,13 +160,14 @@ export default function Exchange() {
         {x.message && <p className="santa-note">{x.message}</p>}
       </section>
 
-      {drawn && match && <MatchCard match={match} budget={budget} />}
+      {drawn && match && <MatchCard match={match} shown={matchShown} setShown={setMatchShown} />}
       {drawn && x.revealed && santa && (
         <div className="banner santa-reveal">
           🎉 Your Secret Santa was <strong>{santa.name}</strong>!
         </div>
       )}
-      {drawn && me && <SantaMessages exchangeId={x.id} />}
+      {/* the chat names your match, so it waits for the reveal too */}
+      {drawn && me && (!match || matchShown) && <SantaMessages exchangeId={x.id} />}
       {drawn && !match && me && <div className="banner">Names were drawn before you joined. Ask {x.organizer} to draw names again so you're included.</div>}
       {!drawn && (
         <div className="santa-status">
@@ -299,13 +304,40 @@ export default function Exchange() {
   );
 }
 
-function MatchCard({ match, budget }) {
+// Your match stays covered until you tap, so it's safe on a shared screen
+function MatchCard({ match, shown, setShown }) {
+  const nameRef = useRef(null);
+  const reveal = () => {
+    setShown(true);
+    requestAnimationFrame(() => nameRef.current?.focus());
+  };
+  if (!shown)
+    return (
+      <section className="match-card match-hidden">
+        <p className="eyebrow">Names are drawn</p>
+        <button type="button" className="match-reveal" onClick={reveal}>
+          <span className="match-reveal-tag" aria-hidden="true">
+            <Emoji e="🎁" />
+          </span>
+          <span>
+            <strong>Tap to see who you're buying for</strong>
+            <span className="muted small">Make sure nobody's looking over your shoulder.</span>
+          </span>
+          <Eye size={18} />
+        </button>
+      </section>
+    );
   return (
-    <section className="match-card">
+    <section className="match-card is-revealed">
       <p className="eyebrow">You're the Secret Santa for</p>
-      <div className="match-name">{match.name}</div>
-      {budget && <p className="muted small">Budget: about {budget}</p>}
+      <div className="match-name" ref={nameRef} tabIndex={-1}>
+        {match.name}
+      </div>
+      <button type="button" className="btn btn-ghost btn-sm match-hide" onClick={() => setShown(false)}>
+        <EyeOff size={14} /> Hide
+      </button>
       {match.list ? (
+
         <Link className="btn btn-primary" to={`/s/${match.list.token}`}>
           <Gift size={16} /> See {match.name}'s wish list
         </Link>
