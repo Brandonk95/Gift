@@ -21,54 +21,51 @@ outside your home.
 2. In this project folder on your PC:
 
    ```bash
-   git remote add origin https://github.com/YOUR-NAME/giftme.git
+   git remote add origin https://github.com/Brandonk95/Gift.git
    git push -u origin main
    ```
 
 3. Open the repo's **Actions** tab. The "Docker image" job builds the image (about 5
    minutes the first time, faster after). When it's green, the image is at
-   `ghcr.io/your-name/giftme`. Your `.env` is never uploaded (it's in `.gitignore`).
+   `ghcr.io/brandonk95/gift`. Your `.env` is never uploaded (it's in `.gitignore`).
 
 ## 2. Let your server download the image (once)
 
-The image is private like the repo, so the server needs a token to read it.
+The simplest option: make the **image** public (your code stays private). On GitHub, go to
+your profile → **Packages** → `gift` → **Package settings** → **Change visibility** →
+Public. Then nothing needs a login.
 
-1. On GitHub: **Settings → Developer settings → Personal access tokens → Tokens
-   (classic) → Generate new token**. Tick only **`read:packages`**, no expiry (or a
-   long one).
-2. On the server:
-
-   ```bash
-   docker login ghcr.io -u YOUR-GITHUB-NAME
-   # paste the token as the password
-   ```
+To keep it private instead, create a token: **Settings → Developer settings → Personal
+access tokens → Tokens (classic)**, tick only **`read:packages`**. Then:
+- on the server, run `sudo docker login ghcr.io -u Brandonk95` and paste the token as
+  the password, and
+- in the compose file, put your GitHub name and the token in watchtower's `REPO_USER` and
+  `REPO_PASS` so automatic updates can download it too.
 
 ## 3. Start it on the server (once)
 
-1. Make a folder and copy in the two files from `deploy/`, plus your `.env`. From your
-   PC (replace `you@server`):
+[`deploy/docker-compose.yml`](deploy/docker-compose.yml) is self-contained: no `.env`
+file, no other files. Its settings are written straight into it, and the ones to fill
+in are marked `← set this`: `APP_URL`, your admin email and password, and your mail
+server. Your data goes in `/DATA/AppData/giftlist` on the server.
 
-   ```bash
-   ssh you@server "mkdir -p ~/giftme"
-   scp deploy/docker-compose.yml deploy/update.sh .env you@server:~/giftme/
-   ```
+- **CasaOS**: App Store → **Custom Install** → import icon (top right) → paste the file
+  → fill in the settings on the giftlist tab → **Install**.
+- **Portainer / Dockge**: create a new stack, paste the file, edit the marked lines,
+  deploy.
+- **Plain Docker**: copy the file to a folder on the server, edit the marked lines, then:
 
-2. On the server, edit `~/giftme/docker-compose.yml`: replace `OWNER/REPO` with your
-   GitHub name and repo, **in lowercase** (e.g. `ghcr.io/brandon/giftme:latest`).
-3. Edit `~/giftme/.env`:
-   - `APP_URL=https://gifts.yourdomain.com` (the address people will use; it's in every email link)
-   - If a reverse proxy runs on the same machine (step 4), set `HOST_PORT=127.0.0.1:8090`
-     so the app is only reachable through the proxy.
-4. Start it:
+  ```bash
+  docker compose up -d
+  ```
 
-   ```bash
-   cd ~/giftme
-   chmod +x update.sh
-   docker compose up -d                         # or, with automatic updates:
-   docker compose --profile autoupdate up -d
-   ```
+Check it: open `http://<server-ip>:8090`. If you left the admin email and password empty,
+the container log (`docker logs giftlist`) prints a one-time link for creating the admin
+account.
 
-5. Check: `curl http://127.0.0.1:8090/api/health` should answer "API is healthy".
+The compose file also runs **Watchtower**, which installs new versions automatically
+(see Updating). Running a reverse proxy on the same machine (step 4)? Change the port line
+to `"127.0.0.1:8090:8090"` so the app is only reachable through the proxy.
 
 ## 4. HTTPS (recommended)
 
@@ -114,15 +111,16 @@ restriction off), or no emails will send: sign-in codes, reminders, digests.
 On your PC, commit your changes and `git push`. GitHub builds a new image (watch the
 Actions tab). Then either:
 
-- **Automatic**: if you started with `--profile autoupdate`, Watchtower picks up the
-  new image within 30 minutes and restarts the app.
-- **By hand**, on the server:
+- **Automatic** (the default): Watchtower picks up the new image within 30 minutes and
+  restarts the app.
+- **Right now**, on the server, in the folder with the compose file (or press the
+  update/recreate button in CasaOS or Portainer):
 
   ```bash
-  cd ~/giftme && ./update.sh
+  docker compose pull && docker compose up -d
   ```
 
-Your data is in the `giftlist_data` Docker volume and survives updates. Database
+Your data is in `/DATA/AppData/giftlist` and survives updates. Database
 changes in new versions are applied automatically when the app starts.
 
 **Rolling back**: every build is also tagged with its commit, so you can pin a known-good
@@ -135,7 +133,7 @@ The app makes a backup every night at 3am and keeps 7, inside the same volume. C
 them off the server now and then (or set S3 under **Settings → Backups**):
 
 ```bash
-docker cp giftlist:/pb/pb_data/backups ./giftme-backups
+cp -r /DATA/AppData/giftlist/pb_data/backups ./giftme-backups
 ```
 
 ## Alternative: build on the server instead
@@ -145,7 +143,7 @@ git access to it), put your `.env` in the folder, and use the project's own
 `docker-compose.yml`:
 
 ```bash
-git clone https://github.com/YOUR-NAME/giftme.git ~/giftme && cd ~/giftme
+git clone https://github.com/Brandonk95/Gift.git ~/giftme && cd ~/giftme
 cp /path/to/your/.env .
 docker compose up -d --build
 ```

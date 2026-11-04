@@ -1,40 +1,96 @@
-# docker-compose.yml for your server: runs the image GitHub builds, instead of
-# building it on the server. Put this file and your .env in one folder (e.g.
-# ~/giftme), replace OWNER/REPO below with your GitHub name and repo (lowercase),
-# then: docker compose up -d
+# GiftMe for your server. Runs the image GitHub builds; nothing to build here.
 #
-# Update by hand:  docker compose pull && docker compose up -d   (or ./update.sh)
-# Or automatically: start with the Watchtower profile (see the bottom of this file):
-#   docker compose --profile autoupdate up -d
+# CasaOS: App Store → Custom Install → Import, paste this file, fill in the settings
+#         marked "← set this" on the giftlist tab, then Install.
+# Portainer / Dockge: paste it as a new stack, edit the same lines, deploy.
+# Plain Docker: put this file in a folder, edit the lines below, then
+#   docker compose up -d
+#
+# Your data (accounts, lists, photos, backups) lives in /DATA/AppData/giftlist on the
+# server and survives updates. Change both "/DATA/AppData/giftlist" paths if you'd
+# rather keep it elsewhere.
+#
+# Updates are automatic: the watchtower service checks for a new image every 30
+# minutes and restarts GiftMe with it. Only containers labelled below are touched.
+name: giftlist
+
 services:
   giftlist:
-    image: ghcr.io/OWNER/REPO:latest
+    image: ghcr.io/brandonk95/gift:latest
     container_name: giftlist
     restart: unless-stopped
     ports:
-      - "${HOST_PORT:-8090}:8090"
-    env_file:
-      - .env
+      - "8090:8090"
     volumes:
-      - giftlist_data:/pb/pb_data
+      - /DATA/AppData/giftlist/pb_data:/pb/pb_data
+    environment:
+      # The address people use to open the app, no trailing slash. It goes in every
+      # email link, e.g. https://gifts.example.com or http://192.168.1.20:8090
+      APP_URL: ""                                       # ← set this
+      # Your admin login for /_/ . Leave empty and the container log prints a
+      # one-time setup link instead.
+      PB_ADMIN_EMAIL: ""                                # ← set this
+      PB_ADMIN_PASSWORD: ""                             # ← set this
+      TZ: America/Denver                                # ← your time zone
+      APP_NAME: GiftMe
+      APP_CURRENCY: USD
+      # Email (sign-in codes, reminders, digests). Leave SMTP_HOST empty to run
+      # without email. Brevo: smtp-relay.brevo.com, port 587, and add this
+      # server's IP under SMTP & API → Authorized IPs.
+      SMTP_HOST: ""                                     # ← set this
+      SMTP_PORT: "587"
+      SMTP_TLS: "false"
+      SMTP_USERNAME: ""                                 # ← set this
+      SMTP_PASSWORD: ""                                 # ← set this
+      SMTP_SENDER_ADDRESS: ""                           # ← set this
+      SMTP_SENDER_NAME: GiftMe
+      # Optional extras
+      BRAVE_SEARCH_KEY: ""   # photo search in the gift editor (free key: brave.com/search/api)
+      DIGEST_HOUR: "0"       # hour (0-23) the nightly "new gifts" emails go out
+      RESERVATION_DAYS: "7"  # how long a reservation lasts before it must be renewed
     labels:
       - com.centurylinklabs.watchtower.enable=true
+    x-casaos:
+      envs:
+        - container: APP_URL
+          description: { en_us: "Address people use to open the app (used in email links)" }
+        - container: PB_ADMIN_EMAIL
+          description: { en_us: "Admin login email for /_/" }
+        - container: PB_ADMIN_PASSWORD
+          description: { en_us: "Admin password (10+ characters)" }
+        - container: SMTP_HOST
+          description: { en_us: "Mail server; leave empty to run without email" }
+      ports:
+        - container: "8090"
+          description: { en_us: "Web UI" }
+      volumes:
+        - container: /pb/pb_data
+          description: { en_us: "Accounts, lists, photos and backups" }
 
-  # Optional: checks for a new image every 30 minutes and restarts the app with it.
-  # Only touches containers labelled above. For a private image, run
-  # `docker login ghcr.io` on the server first (see DEPLOY.md); Watchtower reuses it.
   watchtower:
-    image: containrrr/watchtower:1.7.1
+    # Maintained fork of containrrr/watchtower, which stopped working with Docker 29.
+    image: nickfedor/watchtower:1.24.0
     container_name: giftlist-watchtower
     restart: unless-stopped
-    profiles: ["autoupdate"]
     environment:
-      - WATCHTOWER_LABEL_ENABLE=true
-      - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_POLL_INTERVAL=1800
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_POLL_INTERVAL: "1800"
+      TZ: America/Denver
+      # Only needed if the GitHub package is private: your GitHub name and a token
+      # with read:packages. Not needed once the package is public.
+      REPO_USER: ""
+      REPO_PASS: ""
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${HOME}/.docker/config.json:/config.json:ro
 
-volumes:
-  giftlist_data:
+x-casaos:
+  main: giftlist
+  title: { en_us: GiftMe }
+  tagline: { en_us: Wish lists for friends and family }
+  description: { en_us: "Gift lists you share with a link: reservations, chip-in gifts, Secret Santa." }
+  category: Utilities
+  architectures: [amd64, arm64]
+  port_map: "8090"
+  index: /
+  scheme: http
