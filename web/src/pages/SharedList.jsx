@@ -3,6 +3,7 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { Bell, BellRing, Check, Clock, Gift, HandCoins, Pencil, Printer, RefreshCw, ShoppingBag, Undo2, X } from "lucide-react";
 import ItemCard from "../components/ItemCard.jsx";
 import ChipIn, { pledgeSummary } from "../components/ChipIn.jsx";
+import GuestReserve from "../components/GuestReserve.jsx";
 import Questions from "../components/Questions.jsx";
 import ListHeader from "../components/ListHeader.jsx";
 import { useItemFilters } from "../components/ItemFilters.jsx";
@@ -22,6 +23,7 @@ export default function SharedList() {
   const [reservations, setReservations] = useState([]);
   const [pledges, setPledges] = useState([]);
   const [chipFor, setChipFor] = useState(null);
+  const [guestFor, setGuestFor] = useState(null); // { item, chip }: a signed-out friend confirming their email first
   const [missing, setMissing] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -122,10 +124,11 @@ export default function SharedList() {
   const currency = list.currency || config.currency;
   const ownerName = list.owner_name || "The list owner";
 
-  const reserve = async (item) => {
+  // uid: passed right after an email-code sign-in, before `user` has updated
+  const reserve = async (item, uid = user?.id) => {
     setBusyItem(item.id);
     try {
-      await pb.collection("reservations").create({ item: item.id, user: user.id }, opts);
+      await pb.collection("reservations").create({ item: item.id, user: uid }, opts);
       notify(config.smtpEnabled ? "Reserved! It's on your shopping list, and we emailed you a reminder (check spam if you don't see it) 🎉" : "Reserved! It's on your shopping list 🎉");
     } catch (err) {
       const ruleRejected = err.status === 400 && !Object.keys(err.response?.data || {}).length;
@@ -253,8 +256,17 @@ export default function SharedList() {
         </div>
       ) : !user ? (
         <div className="banner">
-          <Gift size={16} /> Want to get one of these? <Link to={`/login?next=${nextParam}`}>Log in</Link> or <Link to={`/register?next=${nextParam}`}>create a free account</Link> to
-          reserve a gift. {list.owner_name || "They"} won't see who reserved what.
+          {config.smtpEnabled ? (
+            <>
+              <Gift size={16} /> Want to get one of these? Press <strong>I'll get this</strong>, and confirm with a code we email you. No account or password needed.{" "}
+              {list.owner_name || "They"} won't see who reserved what. Have an account? <Link to={`/login?next=${nextParam}`}>Log in</Link>
+            </>
+          ) : (
+            <>
+              <Gift size={16} /> Want to get one of these? <Link to={`/login?next=${nextParam}`}>Log in</Link> or <Link to={`/register?next=${nextParam}`}>create a free account</Link> to
+              reserve a gift. {list.owner_name || "They"} won't see who reserved what.
+            </>
+          )}
         </div>
       ) : (
         <p className="hint-line">🤫 Reserve a gift so nobody else buys it. Reservations last {holdPeriod(config.reservationDays)} (renew them or mark them bought to keep them). {ownerName} can't see reservations.</p>
@@ -332,12 +344,25 @@ export default function SharedList() {
                   </>
                 ) : r ? null : group && user ? (
                   group.mine ? chipButton(group.mine.amount && !hidePrice ? `Your share: ${formatPrice(group.mine.amount, currency)}` : "You're chipping in") : !group.funded && chipButton("Chip in")
+                ) : group && config.smtpEnabled ? (
+                  !group.funded && (
+                    <button className="btn btn-secondary btn-sm" onClick={() => setGuestFor({ item: it, chip: true })}>
+                      <HandCoins size={14} /> Chip in
+                    </button>
+                  )
                 ) : user ? (
                   <>
                     <button className="btn btn-primary btn-sm" disabled={busyItem === it.id} onClick={() => reserve(it)}>
                       <Gift size={14} /> {busyItem === it.id ? "Reserving…" : "I'll get this"}
                     </button>
                     <Menu items={[{ label: "Chip in with others", icon: HandCoins, onClick: () => setChipFor(it) }]} />
+                  </>
+                ) : config.smtpEnabled ? (
+                  <>
+                    <button className="btn btn-primary btn-sm" onClick={() => setGuestFor({ item: it })}>
+                      <Gift size={14} /> I'll get this
+                    </button>
+                    <Menu items={[{ label: "Chip in with others", icon: HandCoins, onClick: () => setGuestFor({ item: it, chip: true }) }]} />
                   </>
                 ) : (
                   <Link className="btn btn-primary btn-sm" to={`/login?next=${nextParam}`}>
@@ -355,6 +380,16 @@ export default function SharedList() {
       )}
       {!isOwner && <Questions list={list} items={items} mode="friend" shareOpts={opts} loginPath={`/login?next=${nextParam}`} />}
 
+      {guestFor && (
+        <GuestReserve
+          item={guestFor.item}
+          chip={!!guestFor.chip}
+          ownerName={ownerName}
+          loginPath={`/login?next=${nextParam}`}
+          onSignedIn={(uid) => (guestFor.chip ? setChipFor(guestFor.item) : reserve(guestFor.item, uid))}
+          onClose={() => setGuestFor(null)}
+        />
+      )}
       {chipFor && (
         <ChipIn
           item={chipFor}

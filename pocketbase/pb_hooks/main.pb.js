@@ -385,6 +385,7 @@ routerAdd(
     if (res.statusCode >= 400) {
       throw new BadRequestError(`That page returned an error (${res.statusCode}), so its details couldn't be read. Fill them in manually.`);
     }
+    u.withShopify(scrape, d, url, html);
     if (!d.title) d.title = scrape.titleFromUrl(url);
     d.images = d.images.filter((i) => u.isPublicHttpUrl(i));
     d.image = d.images[0] || "";

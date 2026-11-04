@@ -436,15 +436,25 @@ function AutofillNote({ found, currency }) {
     );
   }
   return (
-    <div className="autofill-note">
-      <Check size={15} />
-      <span>
-        {found.filled.length ? `Filled in the ${listJoin(found.filled)} from ${site}.` : `Found ${site}, but your details were kept.`}
-        {found.price == null && " No price on the page, so add it yourself."}
-        {otherCurrency && ` The store's price is in ${found.currency}, while this list uses ${currency}.`}
-        {found.images?.length > 1 && " Pick a different picture on the right if you like."}
-      </span>
-    </div>
+    <>
+      <div className="autofill-note">
+        <Check size={15} />
+        <span>
+          {found.filled.length ? `Filled in the ${listJoin(found.filled)} from ${site}.` : `Found ${site}, but your details were kept.`}
+          {found.price == null && " No price on the page, so add it yourself."}
+          {otherCurrency && ` The store's price is in ${found.currency}, while this list uses ${currency}.`}
+          {found.images?.length > 1 && " Pick a different picture on the right if you like."}
+        </span>
+      </div>
+      {found.priceNote && (
+        <div className="autofill-note warn">
+          <Info size={15} />
+          <span>
+            <strong>Check the price:</strong> {found.priceNote}
+          </span>
+        </div>
+      )}
+    </>
   );
 }
 

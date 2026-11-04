@@ -1,5 +1,5 @@
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun, UserRound } from "lucide-react";
+import { ChevronDown, Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun, UserRound } from "lucide-react";
 import { pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
 import { Menu } from "./ui.jsx";
@@ -66,11 +66,15 @@ export default function Layout({ children }) {
             </button>
             {user ? (
               <div className="user-menu">
-                <Link to="/account" className="avatar-link" title="Account & appearance">
-                  <Avatar user={user} />
-                </Link>
                 <Menu
                   label="Account menu"
+                  buttonClassName="avatar-btn"
+                  trigger={
+                    <>
+                      <Avatar user={user} />
+                      <ChevronDown size={14} className="avatar-btn-chevron" />
+                    </>
+                  }
                   items={[
                     { label: "Account & appearance", icon: UserRound, onClick: () => navigate("/account") },
                     { divider: true },

@@ -115,6 +115,18 @@ export default function Account() {
   const savePassword = async (e) => {
     e.preventDefault();
     if (pw.password !== pw.passwordConfirm) return notify("The new password and confirmation don't match. Retype them so they're exactly the same.", "error");
+    if (user.guest) {
+      // signed in with an email code: no current password to check
+      try {
+        const auth = await pb.send("/api/giftlist/account/password", { method: "POST", body: { password: pw.password, passwordConfirm: pw.passwordConfirm } });
+        pb.authStore.save(auth.token, auth.record);
+        setPw({ oldPassword: "", password: "", passwordConfirm: "" });
+        notify("Password set. You can now log in with your email and password.");
+      } catch (err) {
+        notify(errorMessage(err, "set your password"), "error");
+      }
+      return;
+    }
     try {
       await pb.collection("users").update(user.id, pw);
       // changing the password invalidates the current token
@@ -338,13 +350,20 @@ export default function Account() {
 
       <section className="panel">
         <div className="panel-head">
-          <h2>Change password</h2>
+          <h2>{user.guest ? "Set a password" : "Change password"}</h2>
         </div>
+        {user.guest && (
+          <p className="muted small">
+            You signed in with a code we emailed you. That always works, but set a password if you'd rather log in with one.
+          </p>
+        )}
         <form className="form" onSubmit={savePassword}>
-          <label>
-            Current password
-            <input type="password" value={pw.oldPassword} onChange={(e) => setPw({ ...pw, oldPassword: e.target.value })} required autoComplete="current-password" />
-          </label>
+          {!user.guest && (
+            <label>
+              Current password
+              <input type="password" value={pw.oldPassword} onChange={(e) => setPw({ ...pw, oldPassword: e.target.value })} required autoComplete="current-password" />
+            </label>
+          )}
           <div className="row-2">
             <label>
               New password
@@ -356,7 +375,7 @@ export default function Account() {
             </label>
           </div>
           <div>
-            <button className="btn btn-primary">Change password</button>
+            <button className="btn btn-primary">{user.guest ? "Set password" : "Change password"}</button>
           </div>
         </form>
       </section>

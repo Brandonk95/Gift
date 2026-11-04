@@ -56,7 +56,7 @@ cronAdd("giftlist_price_checks", "30 * * * *", () => {
       });
       const html = toString(res.body, 2 * 1024 * 1024);
       if (res.statusCode >= 400 || scrape.blockedReason(html, res.statusCode)) throw new Error("blocked or missing");
-      const d = scrape.extract(url, html);
+      const d = u.withShopify(scrape, scrape.extract(url, html), url, html);
       const list = $app.findRecordById("lists", item.getString("list"));
       const currency = (list.getString("currency") || defaultCurrency).toUpperCase();
       if (!d.price || (d.currency && d.currency.toUpperCase() !== currency)) throw new Error("no comparable price");

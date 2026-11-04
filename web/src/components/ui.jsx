@@ -4,7 +4,8 @@ import { LayoutGrid, List, MoreHorizontal, Rows3, Search, X } from "lucide-react
 import { VIEWS } from "../lib/theme.js";
 
 // Small dropdown menu. items: [{ label, icon: Component, onClick, danger, hidden, divider }]
-export function Menu({ items, label = "More actions", icon: Icon = MoreHorizontal, align = "right", className = "" }) {
+// `trigger` replaces the default ⋯ icon (e.g. the account avatar), styled by `buttonClassName`
+export function Menu({ items, label = "More actions", icon: Icon = MoreHorizontal, align = "right", className = "", trigger = null, buttonClassName = "icon-btn" }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const ref = useRef(null);
@@ -49,7 +50,7 @@ export function Menu({ items, label = "More actions", icon: Icon = MoreHorizonta
     <div className={`menu ${className}`} ref={ref}>
       <button
         type="button"
-        className="icon-btn"
+        className={buttonClassName}
         aria-label={label}
         title={label}
         aria-expanded={open}
@@ -59,7 +60,7 @@ export function Menu({ items, label = "More actions", icon: Icon = MoreHorizonta
           setOpen((o) => !o);
         }}
       >
-        <Icon size={18} />
+        {trigger || <Icon size={18} />}
       </button>
       {open &&
         createPortal(

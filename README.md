@@ -22,7 +22,10 @@ the surprise is kept.
   reads the name, price, currency, pictures and description from the page: schema.org
   product data, Open Graph and product meta tags, microdata, and Amazon/Walmart page data.
   Choose between the pictures it finds, and tracking junk is stripped from the link.
-  Stores that block previews still get a name guessed from the link.
+  Stores that block previews still get a name guessed from the link. Small shops on
+  **Shopify** are read from Shopify's own product data, so the price, option, brand and
+  photos are exact. When a price may be wrong (it differs by size or color, or it was only
+  found in the page's code), the editor says "Check the price".
 - **Photo search** (optional): when a store gives no usable picture (Amazon, blocked sites),
   the editor searches the web for photos of the gift and lets you pick one. There's also a
   "Find photos online" button. Needs a free [Brave Search API](https://brave.com/search/api) key.
@@ -42,8 +45,12 @@ the surprise is kept.
 - Profile picture, password change and self-service account deletion
 - Share with a private link (copy, text, WhatsApp, native share sheet) or **email
   invitations** straight from the app. Reset the link at any time to revoke access.
-- Friends can view without an account; they need one to reserve. They get a
-  confirmation email when they reserve something.
+- Friends can view without an account, and **reserve or chip in without one too**: they
+  give their name and email, and confirm with a 6-digit code we email them (no password,
+  no app). Under the hood that's a light "guest" account, which they can turn into a normal
+  one by setting a password under Account. People with an account can log in as usual.
+  Everyone gets a confirmation email when they reserve something. (Without email set up,
+  friends need an account with a password to reserve.)
 - **Reservations last a week** (`RESERVATION_DAYS`). The person who reserved a gift can
   renew it from the list or their shopping list, and gets a reminder email a day before it
   runs out. Expired reservations are released (checked every 15 minutes) so someone else
@@ -243,7 +250,7 @@ web/                      React frontend (Vite)
 
 | Collection | Purpose |
 | --- | --- |
-| `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `tester`, which only admins can set) |
+| `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `tester`, which only admins can set, `guest`: signed up with an email code and hasn't set a password yet). Email-code (OTP) sign-in is on |
 | `lists` | `owner`, `title`, `occasion`, `event_date`, `description`, `share_token`, `owner_name`, `reveal_givers` |
 | `items` | `list`, `name`, `url`, `price`, `quantity`, `priority`, `category`, `image` (file), `image_url`, `description`, `received`, `thanked`; set by the server: `current_price`, `price_checked`, `price_alerted` |
 | `categories` | `name`, `icon`, `owner` (empty = built-in) |
@@ -263,6 +270,8 @@ web/                      React frontend (Vite)
 - `GET  /api/giftlist/images?q=…`: photo search via Brave (logged-in users, needs `BRAVE_SEARCH_KEY`)
 - `POST /api/giftlist/reservations/{id}/renew`: keep your reservation for another week
 - `GET  /api/giftlist/lists/{id}/givers`: who reserved or chipped in on each gift, owner only, after the list's date and only with `reveal_givers` on
+- `POST /api/giftlist/guest`: `{ name, email }` makes a guest account if there isn't one (same answer either way), before PocketBase's `request-otp` / `auth-with-otp` sign in with an emailed code
+- `POST /api/giftlist/account/password`: a guest sets their first password (`{ password, passwordConfirm }`)
 - `POST /api/giftlist/unsubscribe?u&k&t`: one-click unsubscribe from one kind of email (`{ resubscribe: true }` undoes it)
 - `GET  /manifest.webmanifest`: the installable app manifest (with share target `/share`)
 - Secret Santa (logged-in users):

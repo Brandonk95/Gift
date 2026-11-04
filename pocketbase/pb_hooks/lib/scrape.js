@@ -182,13 +182,97 @@ function offerOf(product) {
   // ProductGroup: use the first variant's offer
   if (!offers && product.hasVariant) offers = first(product.hasVariant) && first(product.hasVariant).offers;
   const list = Array.isArray(offers) ? offers : offers ? [offers] : [];
+  // different prices for different options (sizes, colors…) or sellers?
+  const prices = {};
+  for (const o of list) if (o && typeof o === "object" && parsePrice(o.price) != null) prices[parsePrice(o.price)] = true;
   for (const o of list) {
     if (!o || typeof o !== "object") continue;
     const spec = first(o.priceSpecification) || {};
     const price = parsePrice(o.price != null ? o.price : o.lowPrice != null ? o.lowPrice : spec.price);
-    if (price != null) return { price, currency: String(o.priceCurrency || spec.priceCurrency || "").toUpperCase() };
+    const high = parsePrice(o.highPrice);
+    const range = Object.keys(prices).length > 1 || (o.price == null && high != null && high !== price);
+    if (price != null) return { price, currency: String(o.priceCurrency || spec.priceCurrency || "").toUpperCase(), range };
   }
-  return { price: null, currency: "" };
+  return { price: null, currency: "", range: false };
+}
+
+const NOTE_RANGE = "This gift comes in different prices (sizes, colors or sellers), so check it's the one you want.";
+const NOTE_GUESS = "The price was read from the page's code, not its product details, so double-check it.";
+
+function oddPrice(price) {
+  return price > 0 && (price < 1 || price > 50000) ? "That price looks unusual, so double-check it." : "";
+}
+
+// no HTML, no "Buy X at Store. Free shipping…" boilerplate
+function tidyDescription(description, title) {
+  let d = decode(stripTags(description))
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^Amazon\.[a-z.]+\s*:\s*/i, "")
+    .replace(/\s+:\s+[A-Z][\w &,'-]{2,40}$/, ""); // Amazon's " : Electronics" category tail
+  if (d && title && d.toLowerCase() === title.toLowerCase()) d = "";
+  if (/^(buy|shop|discover|find|browse|order)\b/i.test(d) && /\bat\b|\bon\b|\bonline\b/i.test(d)) d = "";
+  if (d.length > 400) d = d.slice(0, 400).replace(/\s+\S*$/, "") + "…";
+  return d;
+}
+
+// absolute, https/http only, unique, skip sprites, logos and tracking pixels
+function cleanImages(url, images) {
+  const out = [];
+  const seen = {};
+  for (let img of images) {
+    img = absolutize(url, decode(img || ""));
+    if (!img || !/^https?:\/\//i.test(img)) continue;
+    if (/sprite|logo|favicon|pixel|spacer|blank\.gif|1x1|placeholder/i.test(img)) continue;
+    const key = img.replace(/[?#].*$/, "");
+    if (seen[key]) continue;
+    seen[key] = true;
+    out.push(img);
+    if (out.length >= MAX_IMAGES) break;
+  }
+  return out;
+}
+
+// ----- Shopify ----------------------------------------------------------------
+// Many small shops run on Shopify, whose pages often have patchy or wrong price
+// tags. Every Shopify product also has exact data at /products/<handle>.js, so
+// when a page is a Shopify product we read that instead.
+
+// The .js address for a Shopify product page, or "" if this isn't one
+function shopifyJsonUrl(url, html) {
+  if (!/cdn\.shopify\.com|Shopify\.shop\s*=|shopify-features|myshopify\.com/i.test(String(html || ""))) return "";
+  const m = /^(https?:\/\/[^/?#]+)(?:\/[^?#]*)?\/products\/([^/?#.]+)/i.exec(url);
+  return m ? `${m[1]}/products/${m[2]}.js` : "";
+}
+
+// Merge Shopify's product data (the parsed .js response) into extract()'s result
+function applyShopify(out, product, url, html) {
+  if (!product || typeof product !== "object" || !product.title) return out;
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  const wanted = (/[?&]variant=(\d+)/.exec(url) || [])[1];
+  const variant = (wanted && variants.find((v) => String(v.id) === wanted)) || variants.find((v) => v.available) || variants[0] || null;
+  const cents = variant && variant.price != null ? variant.price : product.price;
+
+  out.title = String(product.title).slice(0, 200);
+  const desc = tidyDescription(product.description || "", out.title);
+  if (desc) out.description = desc;
+  if (cents != null && !isNaN(Number(cents))) {
+    out.price = Math.round(Number(cents)) / 100;
+    const cur = /Shopify\.currency\s*=\s*\{\s*"active"\s*:\s*"([A-Z]{3})"/.exec(String(html || ""));
+    if (cur) out.currency = cur[1];
+    out.priceNote = !wanted && product.price_varies ? NOTE_RANGE : oddPrice(out.price);
+  }
+  const imgs = [];
+  if (variant && variant.featured_image && variant.featured_image.src) imgs.push(variant.featured_image.src);
+  for (const i of product.images || []) imgs.push(typeof i === "string" ? i : i && i.src);
+  const merged = cleanImages(url, imgs.concat(out.images));
+  if (merged.length) {
+    out.images = merged;
+    out.image = merged[0];
+  }
+  const vendor = String(product.vendor || "").trim();
+  if (vendor && vendor.length <= 60 && (!out.siteName || vendor.toLowerCase() !== out.siteName.toLowerCase())) out.brand = vendor;
+  return out;
 }
 
 // ----- store-specific fallbacks ---------------------------------------------
@@ -301,8 +385,9 @@ function blockedReason(html, status) {
 function extract(url, html) {
   html = String(html || "");
   const host = (/^https?:\/\/([^/:?#]+)/i.exec(url) || [])[1] || "";
-  const out = { title: "", description: "", image: "", images: [], price: null, currency: "", brand: "", siteName: "", url: "" };
+  const out = { title: "", description: "", image: "", images: [], price: null, currency: "", brand: "", siteName: "", url: "", priceNote: "" };
   let images = [];
+  let priceNote = "";
 
   // 1) JSON-LD
   let product = null;
@@ -318,6 +403,7 @@ function extract(url, html) {
     const offer = offerOf(product);
     out.price = offer.price;
     out.currency = offer.currency;
+    if (offer.range) priceNote = NOTE_RANGE;
     out.brand = text(product.brand || product.manufacturer);
   }
 
@@ -349,6 +435,7 @@ function extract(url, html) {
     // microdata on any element: itemprop="price" content="12.99"
     const m = /itemprop\s*=\s*["']price["'][^>]*?content\s*=\s*["']([^"']+)["']/i.exec(html) || /content\s*=\s*["']([^"']+)["'][^>]*?itemprop\s*=\s*["']price["']/i.exec(html);
     if (m) out.price = parsePrice(m[1]);
+    if (out.price != null) priceNote = NOTE_GUESS;
   }
   if (!out.currency) out.currency = meta(html, ["product:price:currency", "og:price:currency", "priceCurrency"]).toUpperCase();
   if (!out.brand) out.brand = meta(html, ["product:brand", "og:brand", "brand"]);
@@ -357,6 +444,7 @@ function extract(url, html) {
   if (out.price == null) {
     const m = /"(?:currentPrice|salePrice|finalPrice)"\s*:\s*\{[^{}]*?"(?:price|amount|value)"\s*:\s*"?(\d[\d.,]*)/i.exec(html);
     if (m) out.price = parsePrice(m[1]);
+    if (out.price != null) priceNote = NOTE_GUESS;
   }
 
   // 5) <title>
@@ -379,28 +467,10 @@ function extract(url, html) {
     out.description = "";
   }
 
-  // tidy description: no HTML, no "Buy X at Store. Free shipping…" boilerplate
-  let d = decode(stripTags(out.description))
-    .replace(/^Amazon\.[a-z.]+\s*:\s*/i, "")
-    .replace(/\s+:\s+[A-Z][\w &,'-]{2,40}$/, ""); // Amazon's " : Electronics" category tail
-  if (d && out.title && d.toLowerCase() === out.title.toLowerCase()) d = "";
-  if (/^(buy|shop|discover|find|browse|order)\b/i.test(d) && /\bat\b|\bon\b|\bonline\b/i.test(d)) d = "";
-  if (d.length > 400) d = d.slice(0, 400).replace(/\s+\S*$/, "") + "…";
-  out.description = d;
-
-  // images: absolute, https/http only, unique, skip sprites, logos and tracking pixels
-  const seen = {};
-  for (let img of images) {
-    img = absolutize(url, decode(img));
-    if (!img || !/^https?:\/\//i.test(img)) continue;
-    if (/sprite|logo|favicon|pixel|spacer|blank\.gif|1x1|placeholder/i.test(img)) continue;
-    const key = img.replace(/[?#].*$/, "");
-    if (seen[key]) continue;
-    seen[key] = true;
-    out.images.push(img);
-    if (out.images.length >= MAX_IMAGES) break;
-  }
+  out.description = tidyDescription(out.description, out.title);
+  out.images = cleanImages(url, images);
   out.image = out.images[0] || "";
+  out.priceNote = out.price != null ? priceNote || oddPrice(out.price) : "";
 
   const canonical = absolutize(url, linkHref(html, "canonical") || meta(html, ["og:url"]));
   const canonHost = (/^https?:\/\/([^/:?#]+)/i.exec(canonical) || [])[1] || "";
@@ -411,4 +481,4 @@ function extract(url, html) {
   return out;
 }
 
-module.exports = { extract, parsePrice, cleanUrl, titleFromUrl, blockedReason, decode };
+module.exports = { extract, parsePrice, cleanUrl, titleFromUrl, blockedReason, decode, shopifyJsonUrl, applyShopify };

@@ -139,7 +139,22 @@ function reservationExpiry() {
   return pbDate(Date.now() + RESERVATION_DAYS * 864e5);
 }
 
+// Shopify shops: swap in the exact product data from /products/<handle>.js
+// (see lib/scrape.js). Leaves `d` as it was if the shop doesn't answer.
+function withShopify(scrape, d, url, html) {
+  const jsonUrl = scrape.shopifyJsonUrl(url, html);
+  if (!jsonUrl || !isPublicHttpUrl(jsonUrl)) return d;
+  try {
+    const res = $http.send({ url: jsonUrl, method: "GET", timeout: 8, headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 (compatible; GiftList)" } });
+    if (res.statusCode !== 200) return d;
+    return scrape.applyShopify(d, JSON.parse(toString(res.body, 2 * 1024 * 1024)), url, html);
+  } catch (_) {
+    return d;
+  }
+}
+
 module.exports = {
+  withShopify,
   RESERVATION_DAYS,
   pbDate,
   reservationExpiry,
