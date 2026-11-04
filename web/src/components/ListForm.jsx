@@ -1,0 +1,137 @@
+import { useState } from "react";
+import Modal from "./Modal.jsx";
+import { EmojiPicker, Switch, Swatches } from "./ui.jsx";
+import { errorMessage, pb } from "../lib/pb.js";
+import { OCCASIONS, dateOnly, occasion } from "../lib/format.js";
+import { LIST_COLORS } from "../lib/theme.js";
+import { useApp } from "../lib/app.jsx";
+
+const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "NZD", "JPY", "CHF", "SEK", "NOK", "DKK", "PLN", "MXN", "BRL", "INR", "ZAR"];
+
+// Create (no `list`) or edit a list: details, look, privacy.
+export default function ListForm({ list, onClose, onSaved }) {
+  const { user, config } = useApp();
+  const [form, setForm] = useState({
+    title: list?.title || "",
+    occasion: list?.occasion || "christmas",
+    event_date: dateOnly(list?.event_date),
+    description: list?.description || "",
+    emoji: list?.emoji || "",
+    color: list?.color || "",
+    currency: list?.currency || "",
+    hide_prices: !!list?.hide_prices,
+    hide_reservers: !!list?.hide_reservers,
+    reveal_givers: !!list?.reveal_givers,
+    archived: !!list?.archived,
+  });
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setForm({ ...form, [k]: e?.target ? e.target.value : e });
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    const body = {
+      ...form,
+      title: form.title.trim(),
+      description: form.description.trim(),
+      emoji: form.emoji.trim(),
+      event_date: form.event_date ? `${form.event_date} 12:00:00.000Z` : "",
+    };
+    try {
+      const saved = list ? await pb.collection("lists").update(list.id, body) : await pb.collection("lists").create({ ...body, owner: user.id });
+      onSaved(saved);
+    } catch (err) {
+      setError(errorMessage(err, list ? "save your changes to this list" : "create the list"));
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title={list ? "List settings" : "New list"} onClose={onClose} wide>
+      <form className="form" onSubmit={submit}>
+        <div className="form-section">
+          <label>
+            Name
+            <input value={form.title} onChange={set("title")} required maxLength={120} autoFocus placeholder="e.g. Christmas 2026" />
+          </label>
+          <div className="row-2">
+            <label>
+              Occasion
+              <select value={form.occasion} onChange={set("occasion")}>
+                {Object.entries(OCCASIONS).map(([k, o]) => (
+                  <option key={k} value={k}>
+                    {o.icon} {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Date <span className="muted">(optional)</span>
+              <input type="date" value={form.event_date} onChange={set("event_date")} />
+            </label>
+          </div>
+          <label>
+            Note for friends <span className="muted">(optional)</span>
+            <textarea rows={2} value={form.description} onChange={set("description")} maxLength={2000} placeholder="Sizes, favorite colors, things I already have…" />
+          </label>
+        </div>
+
+        <div className="form-section">
+          <h3 className="form-section-title">Look</h3>
+          <span className="label-text">
+            Icon <span className="muted">(defaults to {occasion(form.occasion).icon})</span>
+          </span>
+          <EmojiPicker value={form.emoji} onChange={set("emoji")} />
+          <span className="label-text">Color</span>
+          <Swatches value={form.color} onChange={set("color")} colors={LIST_COLORS} allowNone />
+        </div>
+
+        <div className="form-section">
+          <h3 className="form-section-title">Sharing & privacy</h3>
+          <Switch
+            checked={form.hide_prices}
+            onChange={set("hide_prices")}
+            label="Hide prices from friends"
+            hint="You still see prices; friends just see the gifts."
+          />
+          <Switch
+            checked={form.hide_reservers}
+            onChange={set("hide_reservers")}
+            label="Hide who reserved what"
+            hint="Friends see that a gift is taken, but not by whom."
+          />
+          <Switch
+            checked={form.reveal_givers}
+            onChange={set("reveal_givers")}
+            label="Show me who gave what after the date"
+            hint="The day after the list's date you'll get a thank-you checklist. Friends are told on the list."
+          />
+          <label>
+            Currency
+            <select value={form.currency} onChange={set("currency")}>
+              <option value="">Site default ({config.currency})</option>
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </label>
+          {list && <Switch checked={form.archived} onChange={set("archived")} label="Archive this list" hint="Moves it to the archive on your dashboard. The share link keeps working." />}
+        </div>
+
+        {error && <div className="alert alert-error">{error}</div>}
+        <div className="form-actions">
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button className="btn btn-primary" disabled={busy}>
+            {busy ? "Saving…" : list ? "Save" : "Create list"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}

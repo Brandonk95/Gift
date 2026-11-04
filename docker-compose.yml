@@ -1,0 +1,15 @@
+services:
+  giftlist:
+    build: .
+    image: giftlist:latest
+    container_name: giftlist
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8090}:8090"
+    env_file:
+      - .env
+    volumes:
+      - giftlist_data:/pb/pb_data
+
+volumes:
+  giftlist_data:

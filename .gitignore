@@ -1,0 +1,6 @@
+node_modules/
+web/dist/
+pb_data/
+pocketbase/pb_data/
+.env
+tests/.mail/
