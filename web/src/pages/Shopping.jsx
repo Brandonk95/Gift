@@ -11,6 +11,7 @@ import { errorMessage, itemImage, pb, shareHeaders } from "../lib/pb.js";
 import { countdown, daysUntil, formatDate, formatPrice, holdEndsSoon, holdLabel, holdPeriod, hostname, renewReservation, reservationExpired } from "../lib/format.js";
 import { downloadCsv, slugDate } from "../lib/listActions.js";
 import { useApp } from "../lib/app.jsx";
+import { ownerNames } from "../lib/owners.js";
 
 // Everything the current user has reserved, across all lists shared with them.
 export default function Shopping() {
@@ -151,7 +152,7 @@ export default function Shopping() {
     for (const g of groups)
       for (const r of g.reservations) {
         const it = r.expand.item;
-        rows.push([g.list.owner_name, g.list.title, it.name, g.list.hide_prices ? "" : it.price || "", it.quantity || 1, it.size, it.color, it.url, r.purchased ? "yes" : ""]);
+        rows.push([ownerNames(g.list), g.list.title, it.name, g.list.hide_prices ? "" : it.price || "", it.quantity || 1, it.size, it.color, it.url, r.purchased ? "yes" : ""]);
       }
     downloadCsv(`shopping-list-${slugDate()}.csv`, rows);
   };
@@ -216,7 +217,7 @@ export default function Shopping() {
                   <ListIcon list={g.list} size="sm" />
                   <div className="shop-group-title">
                     <strong>
-                      For {g.list.owner_name || "a friend"}
+                      For {ownerNames(g.list, "a friend")}
                       {santa && (
                         <span className="chip-static santa-tag">
                           <Emoji e="🎅" /> Secret Santa{santa.budget > 0 ? ` · ${formatPrice(santa.budget, santa.currency || cur)} budget` : ""}

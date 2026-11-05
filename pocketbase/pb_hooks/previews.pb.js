@@ -12,7 +12,7 @@ routerAdd("GET", "/s/{token}", (e) => {
   try {
     const list = e.app.findFirstRecordByData("lists", "share_token", e.request.pathValue("token"));
     if (!list.getBool("private")) {
-      const owner = list.getString("owner_name");
+      const owner = [list.getString("owner_name"), list.getString("co_owner") ? list.getString("co_owner_name") : ""].filter(Boolean).join(" & ");
       const n = e.app.countRecords("items", $dbx.exp("list = {:l} AND received = false", { l: list.id }));
       const date = p.longDate(list.getString("event_date"));
       meta.title = list.getString("title");

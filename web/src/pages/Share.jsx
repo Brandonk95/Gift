@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ListIcon } from "../components/ListHeader.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
+import { MINE } from "../lib/owners.js";
 
 // /share?title&text&url: where the installed app receives links shared from other
 // apps (like a store app's Share button) and from the Add-to-GiftMe bookmark on
@@ -22,7 +23,7 @@ export default function Share() {
   useEffect(() => {
     if (!user) return;
     pb.collection("lists")
-      .getFullList({ filter: pb.filter("owner = {:me} && archived = false", { me: user.id }), sort: "-updated" })
+      .getFullList({ filter: pb.filter(`${MINE()} && archived = false`, { me: user.id }), sort: "-updated" })
       .then((l) => {
         if (l.length === 1) navigate(target(l[0].id), { replace: true });
         else setLists(l);

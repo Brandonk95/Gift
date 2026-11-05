@@ -179,7 +179,13 @@ function withShopify(scrape, d, url, html) {
   }
 }
 
+// the list's owner or co-owner (both run the list; neither sees reservations)
+function ownsList(list, userId) {
+  return !!userId && (list.getString("owner") === userId || list.getString("co_owner") === userId);
+}
+
 module.exports = {
+  ownsList,
   withShopify,
   RESERVATION_DAYS,
   pbDate,

@@ -14,6 +14,7 @@ import { coverProps, listCover } from "../lib/themes.js";
 import { useApp } from "../lib/app.jsx";
 import Emoji from "../components/Emoji.jsx";
 import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
+import { MINE, ownerNames, ownsList, partnerName } from "../lib/owners.js";
 
 // Occasions in the next 60 days: your lists, lists you follow, and Secret Santas
 function ComingUp({ lists, follows, userId }) {
@@ -32,8 +33,8 @@ function ComingUp({ lists, follows, userId }) {
     const out = [];
     for (const l of lists || []) if (!l.archived && soon(l.event_date)) out.push({ key: l.id, icon: <ListIcon list={l} size="sm" />, title: l.title, who: "Your list", date: l.event_date, to: `/lists/${l.id}` });
     for (const { follow, list: l } of follows || [])
-      if (l && l.owner !== userId && soon(l.event_date))
-        out.push({ key: `f${l.id}`, icon: <ListIcon list={l} size="sm" />, title: l.title, who: l.owner_name || "A friend", date: l.event_date, to: `/s/${follow.token}` });
+      if (l && !ownsList(l, userId) && soon(l.event_date))
+        out.push({ key: `f${l.id}`, icon: <ListIcon list={l} size="sm" />, title: l.title, who: ownerNames(l, "A friend"), date: l.event_date, to: `/s/${follow.token}` });
     for (const x of exchanges)
       if (soon(x.event_date))
         out.push({ key: `x${x.id}`, icon: <span className="list-icon list-icon-sm santa-icon"><Emoji e="🎅" /></span>, title: x.name, who: "Secret Santa", date: x.event_date, to: `/exchanges/${x.id}` });
@@ -157,8 +158,8 @@ export default function Dashboard() {
     (async () => {
       try {
         const [mine, items] = await Promise.all([
-          pb.collection("lists").getFullList({ filter: pb.filter("owner = {:id}", { id: user.id }) }),
-          pb.collection("items").getFullList({ filter: pb.filter("list.owner = {:id} && received = false", { id: user.id }), fields: "list" }),
+          pb.collection("lists").getFullList({ filter: pb.filter(MINE(), { me: user.id }) }),
+          pb.collection("items").getFullList({ filter: pb.filter(`${MINE("list.")} && received = false`, { me: user.id }), fields: "list" }),
         ]);
         if (!alive) return;
         const c = {};
@@ -180,7 +181,8 @@ export default function Dashboard() {
             }
           })
         );
-        if (alive) setFollows(resolved);
+        // a list you co-own is under your lists, not "shared with me"
+        if (alive) setFollows(resolved.filter((x) => !ownsList(x.list, user.id)));
       } catch {
         if (alive) setFollows([]);
       }
@@ -269,8 +271,8 @@ export default function Dashboard() {
     { label: "Settings", icon: Settings2, onClick: () => setForm({ list: l }) },
     { label: "Duplicate", icon: CopyPlus, onClick: () => dup(l) },
     { label: l.archived ? "Restore" : "Archive", icon: l.archived ? ArchiveRestore : Archive, hidden: l.private, onClick: () => toggleArchive(l) },
-    { divider: true },
-    { label: "Delete", icon: Trash2, danger: true, onClick: () => remove(l) },
+    { divider: true, hidden: l.owner !== user.id },
+    { label: "Delete", icon: Trash2, danger: true, hidden: l.owner !== user.id, onClick: () => remove(l) },
   ];
 
   return (
@@ -318,7 +320,7 @@ export default function Dashboard() {
       ) : (
         <div className="list-grid">
           {activeLists.map((l) => (
-            <ListCard key={l.id} list={l} to={`/lists/${l.id}`} meta={`${counts[l.id] || 0} gift${counts[l.id] === 1 ? "" : "s"}`} menu={menuFor(l)} />
+            <ListCard key={l.id} list={l} to={`/lists/${l.id}`} meta={`${counts[l.id] || 0} gift${counts[l.id] === 1 ? "" : "s"}${partnerName(l, user) ? ` · with ${partnerName(l, user)}` : ""}`} menu={menuFor(l)} />
           ))}
         </div>
       )}
@@ -385,7 +387,7 @@ export default function Dashboard() {
                 key={follow.id}
                 list={list}
                 to={`/s/${follow.token}`}
-                meta={`by ${list.owner_name || "a friend"}${follow.expand?.via_group ? ` · ${follow.expand.via_group.name}` : ""}`}
+                meta={`by ${ownerNames(list, "a friend")}${follow.expand?.via_group ? ` · ${follow.expand.via_group.name}` : ""}`}
                 menu={follow.via_group ? [{ label: "Open group", icon: Users, onClick: () => navigate(`/groups/${follow.via_group}`) }] : [{ label: "Remove from dashboard", icon: X, onClick: () => unfollow(follow) }]}
               />
             ) : (
@@ -409,6 +411,7 @@ export default function Dashboard() {
       {form && (
         <ListForm
           list={form.list}
+          onListChange={replaceList}
           onClose={() => setForm(null)}
           onSaved={(l) => {
             setForm(null);

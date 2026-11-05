@@ -86,7 +86,8 @@ onRecordCreateRequest((e) => {
 
 onRecordUpdateRequest((e) => {
   const { displayName } = require(`${__hooks}/lib/util.js`);
-  if (e.auth) e.record.set("owner_name", displayName(e.auth));
+  // a co-owner's edits don't rename the list's owner
+  if (e.auth && e.auth.id === e.record.getString("owner")) e.record.set("owner_name", displayName(e.auth));
   e.next();
 }, "lists");
 
@@ -107,6 +108,10 @@ onRecordAfterUpdateSuccess((e) => {
     });
     for (const l of lists) {
       l.set("owner_name", name);
+      e.app.save(l);
+    }
+    for (const l of e.app.findRecordsByFilter("lists", "co_owner = {:id} && co_owner_name != {:name}", "", 0, 0, { id: e.record.id, name })) {
+      l.set("co_owner_name", name);
       e.app.save(l);
     }
   } catch (err) {
@@ -208,7 +213,7 @@ routerAdd(
     } catch (_) {
       throw new NotFoundError("This list no longer exists. It may have been deleted — refresh the page.");
     }
-    if (list.getString("owner") !== e.auth.id) {
+    if (!u.ownsList(list, e.auth.id)) {
       throw new ForbiddenError("You can only send invitations for lists you own.");
     }
     if (list.getBool("private")) {

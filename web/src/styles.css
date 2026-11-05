@@ -4263,3 +4263,25 @@ img.emoji {
     box-shadow: 0 0 0 3px transparent, var(--shadow);
   }
 }
+
+/* List settings → Owners */
+.co-owner-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+}
+.co-owner-line svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--muted);
+}
+.co-owners > .btn,
+.co-owner-actions {
+  align-self: flex-start;
+}
+.co-owner-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

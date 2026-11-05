@@ -35,7 +35,7 @@ function sendDigests(app) {
       }
       // the owner reset the share link (access revoked), archived the list, or it's their own
       if (f.getString("token") !== list.getString("share_token") || list.getBool("archived") || list.getBool("private")) continue;
-      if (list.getString("owner") === userId && !user.getBool("tester")) continue;
+      if (u.ownsList(list, userId) && !user.getBool("tester")) continue;
 
       const since = f.getString("notified_at") || f.getString("created");
       const items = app.findRecordsByFilter("items", "list = {:list} && created > {:since} && received = false", "created", 50, 0, { list: list.id, since });
@@ -102,7 +102,7 @@ function sendOccasionReminders(app) {
       try {
         if (f.getString("token") !== list.getString("share_token")) continue;
         const user = app.findRecordById("users", f.getString("user"));
-        if (list.getString("owner") === user.id && !user.getBool("tester")) continue;
+        if (u.ownsList(list, user.id) && !user.getBool("tester")) continue;
         const mail = mails.occasionReminderEmail({ appName: app.settings().meta.appName, appUrl: u.appUrl(app), list, days: OCCASION_DAYS, open, link });
         if (u.sendUserMail(app, user, "occasions", mail)) emailed++;
         f.set("occasion_reminded", date);

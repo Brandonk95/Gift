@@ -15,7 +15,7 @@ routerAdd(
     } catch (_) {
       list = null;
     }
-    if (!list || list.getString("owner") !== e.auth.id) throw new NotFoundError("This list doesn't exist, or it belongs to someone else.");
+    if (!list || !require(`${__hooks}/lib/util.js`).ownsList(list, e.auth.id)) throw new NotFoundError("This list doesn't exist, or it belongs to someone else.");
     if (!list.getBool("reveal_givers")) {
       throw new BadRequestError("Turn on “Show me who gave what after the date” in the list settings first.");
     }

@@ -33,7 +33,7 @@ onRecordAfterCreateSuccess((e) => {
   if (!u.canNotify(e.app)) return;
   try {
     const list = e.app.findRecordById("lists", e.record.getString("list"));
-    const owner = e.app.findRecordById("users", list.getString("owner"));
+    const owners = [list.getString("owner"), list.getString("co_owner")].filter(Boolean).map((id) => e.app.findRecordById("users", id));
     const item = e.record.getString("item") ? e.app.findRecordById("items", e.record.getString("item")) : null;
     const mail = require(`${__hooks}/lib/mails.js`).questionAskedEmail({
       appName: e.app.settings().meta.appName,
@@ -42,7 +42,7 @@ onRecordAfterCreateSuccess((e) => {
       item,
       question: e.record.getString("question"),
     });
-    u.sendUserMail(e.app, owner, "questions", mail);
+    for (const owner of owners) u.sendUserMail(e.app, owner, "questions", mail);
   } catch (err) {
     console.log("[giftlist] question email failed:", err);
   }

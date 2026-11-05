@@ -15,6 +15,12 @@ const OCCASIONS = {
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const SYMBOLS = { USD: "$", CAD: "CA$", AUD: "A$", NZD: "NZ$", MXN: "MX$", EUR: "€", GBP: "£", JPY: "¥", INR: "₹", BRL: "R$" };
 
+// "Alex" or "Alex & Jamie" (a list can have a co-owner)
+function listOwners(list) {
+  const co = list.getString("co_owner") ? list.getString("co_owner_name") : "";
+  return [list.getString("owner_name"), co].filter(Boolean).join(" & ");
+}
+
 function occasionOf(list) {
   return OCCASIONS[list.getString("occasion")] || OCCASIONS.other;
 }
@@ -127,7 +133,7 @@ function shareEmail({ appName, appUrl, currency, from, list, items, note, link }
 
 // ------------------------------------------------------- reservation reminder
 function reservationEmail({ appName, appUrl, currency, list, item }) {
-  const owner = list.getString("owner_name") || "your friend";
+  const owner = listOwners(list) || "your friend";
   const title = list.getString("title");
   const listLink = `${appUrl}/s/${list.getString("share_token")}`;
   const shopLink = `${appUrl}/shopping`;
@@ -181,7 +187,7 @@ function reservationEmail({ appName, appUrl, currency, list, item }) {
 
 // A day before a reservation runs out
 function reservationReminderEmail({ appName, appUrl, currency, list, item, expires }) {
-  const owner = list.getString("owner_name") || "your friend";
+  const owner = listOwners(list) || "your friend";
   const title = list.getString("title");
   const shopLink = `${appUrl}/shopping`;
   const listLink = `${appUrl}/s/${list.getString("share_token")}`;
@@ -229,7 +235,7 @@ function reservationReminderEmail({ appName, appUrl, currency, list, item, expir
 
 // After a reservation ran out without being renewed
 function reservationReleasedEmail({ appName, appUrl, list, item }) {
-  const owner = list.getString("owner_name") || "your friend";
+  const owner = listOwners(list) || "your friend";
   const listLink = `${appUrl}/s/${list.getString("share_token")}`;
   const content =
     m.paragraph(
@@ -261,7 +267,7 @@ function reservationReleasedEmail({ appName, appUrl, list, item }) {
 
 // A week before a followed list's occasion
 function occasionReminderEmail({ appName, appUrl, list, days, open, link }) {
-  const owner = list.getString("owner_name") || "Your friend";
+  const owner = listOwners(list) || "Your friend";
   const [label] = occasionOf(list);
   const occ = list.getString("occasion");
   const what = occ && occ !== "other" ? `${owner}'s ${label.toLowerCase()}` : `${owner}'s “${list.getString("title")}”`;
@@ -316,7 +322,7 @@ function questionAskedEmail({ appName, appUrl, list, item, question }) {
 
 // The list owner answered a question you asked
 function questionAnsweredEmail({ appName, appUrl, list, item, question, answer }) {
-  const owner = list.getString("owner_name") || "The list owner";
+  const owner = listOwners(list) || "The list owner";
   const link = `${appUrl}/s/${list.getString("share_token")}`;
   const content =
     m.paragraph(`<strong>${m.esc(owner)}</strong> answered your question${item ? ` about <strong>${m.esc(item.getString("name"))}</strong>` : ""}.`) +
@@ -338,7 +344,7 @@ function questionAnsweredEmail({ appName, appUrl, list, item, question, answer }
 
 // A gift you reserved (or chipped in on) got cheaper at the store
 function priceDropEmail({ appName, appUrl, list, item, listed, now, currency }) {
-  const owner = list.getString("owner_name") || "your friend";
+  const owner = listOwners(list) || "your friend";
   const buyUrl = item.getString("url");
   const saved = formatPrice(listed - now, currency);
   const content =
@@ -398,7 +404,7 @@ function santaMessageEmail({ appName, appUrl, exchange, from, toSanta, text, lin
 function followDigestEmail({ appName, appUrl, groups }) {
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const gifts = (n) => `${n} new gift${n === 1 ? "" : "s"}`;
-  const ownerOf = (list) => list.getString("owner_name") || "Someone";
+  const ownerOf = (list) => listOwners(list) || "Someone";
 
   let content = m.paragraph(
     groups.length === 1

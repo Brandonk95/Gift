@@ -17,6 +17,7 @@ import { formatDate, formatPrice, holdEndsSoon, holdLabel, holdPeriod, occasion,
 import { useApp } from "../lib/app.jsx";
 import { overBudget, santaFor, useMyMatches } from "../lib/santa.js";
 import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
+import { ownerNames, ownsList } from "../lib/owners.js";
 
 export default function SharedList() {
   const { token } = useParams();
@@ -40,7 +41,7 @@ export default function SharedList() {
 
   const opts = useMemo(() => shareHeaders(token), [token]);
   // testers (set in the admin dashboard) see their own lists the way friends do
-  const ownList = !!(user && list && list.owner === user.id);
+  const ownList = ownsList(list, user);
   const isOwner = ownList && !user.tester;
   const nextParam = encodeURIComponent(loc.pathname);
 
@@ -61,13 +62,13 @@ export default function SharedList() {
         const l = await pb.collection("lists").getFirstListItem(pb.filter("share_token = {:t}", { t: token }), opts);
         const [its, cats] = await Promise.all([
           pb.collection("items").getFullList({ ...opts, filter: pb.filter("list = {:id}", { id: l.id }) }),
-          pb.collection("categories").getFullList({ filter: pb.filter('owner = "" || owner = {:o}', { o: l.owner }) }),
+          pb.collection("categories").getFullList({ filter: pb.filter('owner = "" || owner = {:o} || owner = {:c}', { o: l.owner, c: l.co_owner || l.owner }) }),
         ]);
         if (!alive) return;
         setList(l);
         setItems(its);
         setCategories(cats);
-        if (!user || l.owner !== user.id || user.tester) await loadReservations(l.id);
+        if (!user || !ownsList(l, user) || user.tester) await loadReservations(l.id);
       } catch (err) {
         if (!alive) return;
         if (err.status === 404) setMissing(true);
@@ -81,7 +82,7 @@ export default function SharedList() {
 
   // Remember lists a logged-in friend has opened so they show on their dashboard.
   useEffect(() => {
-    if (!user || !list || (list.owner === user.id && !user.tester)) return;
+    if (!user || !list || (ownsList(list, user) && !user.tester)) return;
     (async () => {
       try {
         const existing = await pb
@@ -128,7 +129,7 @@ export default function SharedList() {
   if (!list) return <CardsSkeleton header />;
 
   const currency = list.currency || config.currency;
-  const ownerName = list.owner_name || "The list owner";
+  const ownerName = ownerNames(list, "The list owner");
 
   // uid: passed right after an email-code sign-in, before `user` has updated
   const reserve = async (item, uid = user?.id) => {
@@ -195,7 +196,7 @@ export default function SharedList() {
       setFollow(saved);
       notify(
         saved.notify
-          ? `Following! When ${list.owner_name || "they"} add gifts, you'll get one email that night with everything new.${config.smtpEnabled ? " Check spam if it doesn't show up." : ""}`
+          ? `Following! When ${ownerNames(list, "they")} add gifts, you'll get one email that night with everything new.${config.smtpEnabled ? " Check spam if it doesn't show up." : ""}`
           : "Unfollowed. No more emails about this list."
       );
     } catch (err) {
@@ -226,7 +227,7 @@ export default function SharedList() {
     <div className="page">
       <ListHeader
         list={list}
-        eyebrow={titleNamesOwner || !list.owner_name ? occasion(list.occasion).label : `${occasion(list.occasion).label} · ${list.owner_name}`}
+        eyebrow={titleNamesOwner || !list.owner_name ? occasion(list.occasion).label : `${occasion(list.occasion).label} · ${ownerNames(list)}`}
         meta={
           !isOwner && (
             <span className="meta-item">
@@ -282,12 +283,12 @@ export default function SharedList() {
           {config.smtpEnabled ? (
             <>
               <Gift size={16} /> Want to get one of these? Press <strong>I'll get this</strong>, and confirm with a code we email you. No account or password needed.{" "}
-              {list.owner_name || "They"} won't see who reserved what. Have an account? <Link to={`/login?next=${nextParam}`}>Log in</Link>
+              {ownerNames(list, "They")} won't see who reserved what. Have an account? <Link to={`/login?next=${nextParam}`}>Log in</Link>
             </>
           ) : (
             <>
               <Gift size={16} /> Want to get one of these? <Link to={`/login?next=${nextParam}`}>Log in</Link> or <Link to={`/register?next=${nextParam}`}>create a free account</Link> to
-              reserve a gift. {list.owner_name || "They"} won't see who reserved what.
+              reserve a gift. {ownerNames(list, "They")} won't see who reserved what.
             </>
           )}
         </div>
@@ -315,7 +316,7 @@ export default function SharedList() {
       </div>
 
       {wanted.length === 0 ? (
-        <EmptyState art="gift" title="Nothing here yet" text={`${list.owner_name || "They"} hasn't added any gifts. Check back later.`} />
+        <EmptyState art="gift" title="Nothing here yet" text={`${ownerNames(list, "They")} hasn't added any gifts. Check back later.`} />
       ) : visible.length === 0 ? (
         <div className="empty empty-sm">
           <p className="muted">{filtering ? "No gifts match your search." : "Everything has been reserved. 🎉"}</p>

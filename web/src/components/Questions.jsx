@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { MessageCircleQuestion, Trash2 } from "lucide-react";
 import { errorMessage, pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
+import { ownerNames } from "../lib/owners.js";
 
 const NO_OPTS = {};
 
@@ -11,7 +12,7 @@ export default function Questions({ list, items, mode, shareOpts = NO_OPTS, logi
   const { user, config, notify } = useApp();
   const [questions, setQuestions] = useState(null);
   const owner = mode === "owner";
-  const ownerName = list.owner_name || "the list owner";
+  const ownerName = ownerNames(list, "the list owner");
   const itemName = (id) => items.find((i) => i.id === id)?.name;
 
   const load = useCallback(() => {
@@ -55,7 +56,7 @@ export default function Questions({ list, items, mode, shareOpts = NO_OPTS, logi
                 <AnswerForm q={q} onSaved={load} notify={notify} />
               ) : q.answer ? (
                 <div className="q-answer">
-                  <strong>{list.owner_name || "Answer"}:</strong> {q.answer}
+                  <strong>{ownerNames(list, "Answer")}:</strong> {q.answer}
                 </div>
               ) : (
                 <div className="muted small">Waiting for an answer</div>

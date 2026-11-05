@@ -46,6 +46,11 @@ the surprise is kept.
   night) or your own photo across the top of the list, also shown on dashboard cards
 - **Private ideas boards**: lists only you can see, with no working share link, for gifts
   you're still deciding on. Move ideas to a real list when you're sure.
+- **Two owners on one list**: for a couple's wedding or baby list, invite a co-owner from
+  the list's Settings → Owners. They open the link, accept, and can then add and edit
+  gifts, change settings and answer questions. Like the owner, they never see who
+  reserved what. Only the person who made the list can delete it; either of you can end
+  the sharing (remove, or leave). Friends see both names on the list.
 - **Getting started guide** on the dashboard for new accounts (make a list, add a gift,
   share it), which disappears when done or dismissed
 - Star gifts as "most wanted"; add size and color/variant details
@@ -287,7 +292,7 @@ web/                      React frontend (Vite)
 | Collection | Purpose |
 | --- | --- |
 | `users` | Built-in PocketBase auth collection (`name`, `avatar`, `prefs`, `email_prefs` (emails turned off), `email_hash` (for Gravatar, set by the server), `push_prefs` (notification kinds turned off), `tester`, which only admins can set, `guest`: signed up with an email code and hasn't set a password yet). Email-code (OTP) sign-in is on |
-| `lists` | `owner`, `title`, `occasion`, `event_date`, `description`, `share_token`, `owner_name`, `reveal_givers`, `theme`, `cover` (file), `friend_view`, `private` (ideas board: share-token rules all require `private = false`) |
+| `lists` | `owner`, `title`, `occasion`, `event_date`, `description`, `share_token`, `owner_name`, `reveal_givers`, `theme`, `cover` (file), `friend_view`, `private` (ideas board: share-token rules all require `private = false`), `co_owner` / `co_owner_name` (second owner: every "owner" rule includes them, every "not the owner" rule excludes them), `co_invite` (hidden invite token) |
 | `items` | `list`, `name`, `url`, `price`, `quantity`, `priority`, `category`, `image` (file), `image_url`, `description`, `received`, `thanked`; set by the server: `current_price`, `price_checked`, `price_alerted` |
 | `categories` | `name`, `icon`, `owner` (empty = built-in) |
 | `reservations` | `item`, `user`, `reserver_name`, `purchased`, `expires`, `reminded`. Never visible to the list owner |
@@ -314,6 +319,7 @@ web/                      React frontend (Vite)
 - `POST /api/giftlist/account/password`: a guest sets their first password (`{ password, passwordConfirm }`)
 - `POST /api/giftlist/unsubscribe?u&k&t`: one-click unsubscribe from one kind of email (`{ resubscribe: true }` undoes it)
 - `GET  /api/giftlist/wishlist?url=…`: the gifts on an Amazon wish list (logged-in users)
+- Co-owners: `POST /api/giftlist/lists/{id}/co-owner/invite` (owner only, makes the one-time link `/o/{token}`), `GET /api/giftlist/co-owner/{token}` (what the link is for, works signed out), `POST /api/giftlist/co-owner/{token}` (accept), `POST /api/giftlist/lists/{id}/co-owner/remove` (owner removes, or co-owner leaves; also cancels an open invite)
 - Family groups: `GET /api/giftlist/groups/invite/{token}` (what an invite link joins, works signed out), `POST /api/giftlist/groups/join` (`{ token }`), `POST /api/giftlist/groups/{id}/reset-invite` (owner only)
 - Phone notifications: `GET /api/giftlist/push/key` (the key browsers subscribe with), `POST /api/giftlist/push/test` (a test notification to your devices)
 - `GET  /manifest.webmanifest`: the installable app manifest (with share target `/share`)

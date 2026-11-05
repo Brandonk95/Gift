@@ -39,6 +39,7 @@ import { findUrl, findUrls, formatPrice, isWishlistUrl } from "../lib/format.js"
 import { copyItem, duplicateList, exportListCsv } from "../lib/listActions.js";
 import { useApp } from "../lib/app.jsx";
 import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
+import { MINE, ownsList, partnerName } from "../lib/owners.js";
 
 
 export default function ListEditor() {
@@ -68,9 +69,16 @@ export default function ListEditor() {
       pb.collection("items").getFullList({ filter: pb.filter("list = {:id}", { id }) }),
       pb.collection("categories").getFullList({ filter: pb.filter('owner = "" || owner = {:me}', { me: user.id }), sort: "name" }),
     ])
-      .then(([l, its, cats]) => {
+      .then(async ([l, its, cats]) => {
         if (!alive) return;
-        if (l.owner !== user.id) return setMissing(true);
+        if (!ownsList(l, user)) return setMissing(true);
+        // co-owned: the other owner's categories too, so both see the same ones
+        const other = l.owner === user.id ? l.co_owner : l.owner;
+        if (other) {
+          const theirs = await pb.collection("categories").getFullList({ filter: pb.filter("owner = {:o}", { o: other }) }).catch(() => []);
+          cats = [...cats, ...theirs].sort((a, b) => a.name.localeCompare(b.name));
+        }
+        if (!alive) return;
         setList(l);
         setItems(its);
         setCategories(cats);
@@ -278,6 +286,7 @@ export default function ListEditor() {
             {active.length} gift{active.length === 1 ? "" : "s"}
             {total > 0 && ` · ${formatPrice(total, currency)}`}
             {received > 0 && ` · ${received} received`}
+            {partnerName(list, user) && ` · with ${partnerName(list, user)}`}
           </span>
         }
         actions={
@@ -297,8 +306,8 @@ export default function ListEditor() {
                 { label: "Export to spreadsheet (CSV)", icon: Download, onClick: () => exportListCsv(list, items, categoryMap) },
                 { label: "Print", icon: Printer, onClick: () => window.print() },
                 { label: list.archived ? "Restore from archive" : "Archive list", icon: list.archived ? ArchiveRestore : Archive, onClick: toggleArchive },
-                { divider: true },
-                { label: "Delete list", icon: Trash2, danger: true, onClick: removeList },
+                { divider: true, hidden: list.owner !== user.id },
+                { label: "Delete list", icon: Trash2, danger: true, hidden: list.owner !== user.id, onClick: removeList },
               ]}
             />
           </>
@@ -425,6 +434,7 @@ export default function ListEditor() {
       {editingList && (
         <ListForm
           list={list}
+          onListChange={setList}
           onClose={() => setEditingList(false)}
           onSaved={(l) => {
             setList(l);
@@ -458,7 +468,7 @@ function ListPicker({ currentId, mode, item, onClose, onDone }) {
 
   useEffect(() => {
     pb.collection("lists")
-      .getFullList({ filter: pb.filter("owner = {:me} && id != {:cur}", { me: user.id, cur: currentId }), sort: "archived,-created" })
+      .getFullList({ filter: pb.filter(`${MINE()} && id != {:cur}`, { me: user.id, cur: currentId }), sort: "archived,-created" })
       .then(setLists)
       .catch((err) => {
         notify(errorMessage(err, "load your other lists"), "error");

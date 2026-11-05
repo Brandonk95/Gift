@@ -17,6 +17,7 @@ import NotFound from "./pages/NotFound.jsx";
 import Unsubscribe from "./pages/Unsubscribe.jsx";
 import Share from "./pages/Share.jsx";
 import { ConfirmEmail, ResetPassword, VerifyEmail } from "./pages/EmailAction.jsx";
+import { JoinCoOwner } from "./components/CoOwners.jsx";
 
 function RequireAuth({ children }) {
   const { user } = useApp();
@@ -86,6 +87,7 @@ export default function App() {
           }
         />
         <Route path="/g/:token" element={<JoinGroup />} />
+        <Route path="/o/:token" element={<JoinCoOwner />} />
         <Route path="/x/:token" element={<JoinExchange />} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/share" element={<Share />} />

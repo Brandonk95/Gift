@@ -8,11 +8,12 @@ import { LIST_COLORS, VIEWS } from "../lib/theme.js";
 import { OCCASION_THEME, THEMES, coverProps, listCover } from "../lib/themes.js";
 import { useApp } from "../lib/app.jsx";
 import Emoji from "./Emoji.jsx";
+import CoOwners from "./CoOwners.jsx";
 
 const CURRENCIES = ["USD", "EUR", "GBP", "CAD", "AUD", "NZD", "JPY", "CHF", "SEK", "NOK", "DKK", "PLN", "MXN", "BRL", "INR", "ZAR"];
 
 // Create (no `list`) or edit a list: details, look, privacy.
-export default function ListForm({ list, onClose, onSaved }) {
+export default function ListForm({ list, onClose, onSaved, onListChange }) {
   const { user, config } = useApp();
   const [form, setForm] = useState({
     title: list?.title || "",
@@ -189,6 +190,8 @@ export default function ListForm({ list, onClose, onSaved }) {
           </label>
           {list && <Switch checked={form.archived} onChange={set("archived")} label="Archive this list" hint="Moves it to the archive on your dashboard. The share link keeps working." />}
         </div>
+
+        {list && <CoOwners list={list} onListChange={onListChange} />}
 
         {error && <div className="alert alert-error">{error}</div>}
         <div className="form-actions">
