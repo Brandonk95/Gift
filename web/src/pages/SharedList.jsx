@@ -18,6 +18,7 @@ import { useApp } from "../lib/app.jsx";
 import { overBudget, santaFor, useMyMatches } from "../lib/santa.js";
 import { CardsSkeleton, EmptyState } from "../components/Placeholders.jsx";
 import { ownerNames, ownsList } from "../lib/owners.js";
+import { celebrateGift } from "../lib/celebrate.js";
 
 export default function SharedList() {
   const { token } = useParams();
@@ -136,6 +137,7 @@ export default function SharedList() {
     setBusyItem(item.id);
     try {
       await pb.collection("reservations").create({ item: item.id, user: uid }, opts);
+      celebrateGift(item.id);
       // a heads-up (not a rule) when it goes with a gift nobody is getting yet
       const loose = linkedGifts(item, wanted).filter((o) => !resByItem[o.id] && !pledgesByItem[o.id]);
       if (loose.length) {
@@ -170,6 +172,7 @@ export default function SharedList() {
   const togglePurchased = async (r) => {
     try {
       const saved = await pb.collection("reservations").update(r.id, { purchased: !r.purchased }, opts);
+      if (saved.purchased) celebrateGift(saved.item);
       setReservations((prev) => prev.map((x) => (x.id === saved.id ? saved : x)));
     } catch (err) {
       notify(errorMessage(err, "update your reservation"), "error");

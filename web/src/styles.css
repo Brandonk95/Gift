@@ -4285,3 +4285,186 @@ img.emoji {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* ==========================================================================
+   Motion: pages and cards ease in, small things pop.
+   Entrances use fill-mode "backwards" so they never hold a transform after
+   finishing (cards still lift on hover). All of it switches off under
+   prefers-reduced-motion (the rule further up).
+   ========================================================================== */
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+@keyframes pill-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  70% {
+    transform: scale(1.08);
+  }
+}
+@keyframes star-pop {
+  40% {
+    transform: scale(1.45) rotate(-12deg);
+  }
+  70% {
+    transform: scale(0.9) rotate(4deg);
+  }
+}
+@keyframes float {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes soft-pulse {
+  50% {
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent);
+  }
+}
+@keyframes brand-wiggle {
+  25% {
+    transform: rotate(-16deg) scale(1.06);
+  }
+  55% {
+    transform: rotate(6deg) scale(1.06);
+  }
+  80% {
+    transform: rotate(-9deg);
+  }
+}
+
+/* each page fades up as it opens */
+.page {
+  animation: page-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* cards arrive one after another (the first dozen; the rest come with the last) */
+.items > *,
+.list-grid > *,
+.coming-up-row > * {
+  animation: rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: 0.36s;
+}
+.items > :nth-child(1),
+.list-grid > :nth-child(1),
+.coming-up-row > :nth-child(1) {
+  animation-delay: 0.04s;
+}
+.items > :nth-child(2),
+.list-grid > :nth-child(2),
+.coming-up-row > :nth-child(2) {
+  animation-delay: 0.08s;
+}
+.items > :nth-child(3),
+.list-grid > :nth-child(3),
+.coming-up-row > :nth-child(3) {
+  animation-delay: 0.12s;
+}
+.items > :nth-child(4),
+.list-grid > :nth-child(4),
+.coming-up-row > :nth-child(4) {
+  animation-delay: 0.16s;
+}
+.items > :nth-child(5),
+.list-grid > :nth-child(5) {
+  animation-delay: 0.19s;
+}
+.items > :nth-child(6),
+.list-grid > :nth-child(6) {
+  animation-delay: 0.22s;
+}
+.items > :nth-child(7),
+.list-grid > :nth-child(7) {
+  animation-delay: 0.25s;
+}
+.items > :nth-child(8),
+.list-grid > :nth-child(8) {
+  animation-delay: 0.28s;
+}
+.items > :nth-child(9),
+.list-grid > :nth-child(9) {
+  animation-delay: 0.3s;
+}
+.items > :nth-child(10),
+.list-grid > :nth-child(10) {
+  animation-delay: 0.32s;
+}
+.items > :nth-child(11),
+.list-grid > :nth-child(11) {
+  animation-delay: 0.34s;
+}
+
+/* "You're getting this", "Reserved", "Received" pop in */
+.status-pill {
+  animation: pill-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.3) backwards;
+}
+.items > * .status-pill {
+  animation-delay: 0.3s;
+}
+
+/* starring a gift */
+.star-btn svg {
+  transition: transform 0.15s;
+}
+.star-btn:active svg {
+  transform: scale(0.8);
+}
+.star-btn.on svg {
+  animation: star-pop 0.45s ease-out;
+}
+
+/* the logo waves hello on hover */
+.brand:hover .brand-mark {
+  animation: brand-wiggle 0.6s ease-in-out;
+}
+
+/* empty-state drawings bob gently */
+.empty-art {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* a list happening within a week gently pulses its countdown */
+.coming-up-card.is-soon .coming-up-days,
+.list-card-meta .countdown.soon {
+  animation: soft-pulse 2.4s ease-in-out infinite;
+}
+
+/* buttons press in a little, primary ones lift on hover */
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn:active:not(:disabled),
+.icon-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* confetti from lib/celebrate.js */
+.confetti {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  overflow: hidden;
+}
+.confetti i {
+  position: absolute;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  will-change: transform, opacity;
+}
+.confetti i.round {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}

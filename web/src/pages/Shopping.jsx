@@ -12,6 +12,7 @@ import { countdown, daysUntil, formatDate, formatPrice, holdEndsSoon, holdLabel,
 import { downloadCsv, slugDate } from "../lib/listActions.js";
 import { useApp } from "../lib/app.jsx";
 import { ownerNames } from "../lib/owners.js";
+import { celebrate } from "../lib/celebrate.js";
 
 // Everything the current user has reserved, across all lists shared with them.
 export default function Shopping() {
@@ -105,9 +106,10 @@ export default function Shopping() {
   const update = (g, saved) =>
     setGroups((prev) => prev.map((x) => (x === g ? { ...x, reservations: x.reservations.map((r) => (r.id === saved.id ? { ...saved, expand: r.expand } : r)) } : x)));
 
-  const togglePurchased = async (g, r) => {
+  const togglePurchased = async (g, r, from) => {
     try {
       const saved = await pb.collection("reservations").update(r.id, { purchased: !r.purchased }, shareHeaders(g.token));
+      if (saved.purchased) celebrate(from, { count: 18 });
       update(g, saved);
     } catch (err) {
       notify(errorMessage(err, "update this gift"), "error");
@@ -244,7 +246,7 @@ export default function Shopping() {
                     return (
                       <div key={r.id} className={`shop-row ${r.purchased ? "done" : ""}`}>
                         <label className="check">
-                          <input type="checkbox" checked={!!r.purchased} onChange={() => togglePurchased(g, r)} aria-label={`Bought ${it.name}`} />
+                          <input type="checkbox" checked={!!r.purchased} onChange={(e) => togglePurchased(g, r, e.currentTarget)} aria-label={`Bought ${it.name}`} />
                           <span className="check-box" />
                         </label>
                         <Thumb src={img} />

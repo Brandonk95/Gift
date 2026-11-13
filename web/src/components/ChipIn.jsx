@@ -3,6 +3,7 @@ import Modal from "./Modal.jsx";
 import { errorMessage, pb } from "../lib/pb.js";
 import { formatPrice } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
+import { celebrateGift } from "../lib/celebrate.js";
 
 // Totals for the friends chipping in on one gift
 export function pledgeSummary(item, pledges, userId) {
@@ -30,6 +31,7 @@ export default function ChipIn({ item, pledges, currency, hideNames, hidePrice, 
       if (s.mine) await pb.collection("pledges").update(s.mine.id, body, shareOpts);
       else await pb.collection("pledges").create({ ...body, item: item.id, user: user.id }, shareOpts);
       notify(s.mine ? "Updated your share" : `You're chipping in on “${item.name}” 🤝 Sort out paying with the others.`);
+      if (!s.mine) celebrateGift(item.id);
       onSaved();
     } catch (err) {
       notify(errorMessage(err, "chip in"), "error");
