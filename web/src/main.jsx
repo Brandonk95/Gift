@@ -7,6 +7,10 @@ import "@fontsource-variable/inter";
 import "@fontsource-variable/nunito";
 import "@fontsource-variable/fraunces";
 import "./styles.css";
+import { trackVisualViewport } from "./lib/viewport.js";
+
+// keeps bottom sheets above the iPhone keyboard (see lib/viewport.js)
+trackVisualViewport();
 
 // lets the app be installed (home screen / desktop) and receive shared links
 if (import.meta.env.PROD && "serviceWorker" in navigator) {

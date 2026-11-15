@@ -113,6 +113,14 @@ body {
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  /* iPhone Safari otherwise "boosts" text in some blocks and not others */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+/* anything that sticks out sideways would make phones zoom the whole page out */
+html,
+body {
+  overflow-x: clip;
 }
 /* titles use the serif display face; "System" font keeps everything native */
 h1,
@@ -182,6 +190,7 @@ p {
 }
 .app {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: radial-gradient(1100px 420px at 50% -160px, var(--bg-glow), transparent 70%) no-repeat, var(--bg);
@@ -2486,7 +2495,11 @@ input[type="search"]::-webkit-search-cancel-button {
   .modal-wide {
     max-width: none;
     max-height: 94vh;
+    /* the part of the screen you can actually see: above the keyboard and browser bars
+       (--vv-height is set by lib/viewport.js; dvh is the fallback) */
+    max-height: calc(var(--vv-height, 100dvh) - 24px);
     overflow-y: auto;
+    overscroll-behavior: contain;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border-bottom: 0;
     padding-bottom: env(safe-area-inset-bottom);
@@ -4467,4 +4480,31 @@ img.emoji {
   width: 10px;
   height: 10px;
   border-radius: 50%;
+}
+
+/* ==========================================================================
+   Phones (iPhone Safari in particular)
+   ========================================================================== */
+/* Safari zooms the page in when you tap a text box whose text is under 16px, and
+   doesn't zoom back out. 16px boxes on touch screens stop that. */
+@media (pointer: coarse), (max-width: 720px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+/* rows of checkboxes with a description wrap instead of running off the screen */
+.check-list .toggle {
+  white-space: normal;
+}
+.check-list .toggle > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  /* the bottom sheet stays above the on-screen keyboard (--vv-bottom from lib/viewport.js) */
+  .modal-backdrop {
+    bottom: var(--vv-bottom, 0px);
+  }
 }
