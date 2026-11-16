@@ -266,6 +266,17 @@ server with `PUSH_TEST_ENDPOINT=http://127.0.0.1:2526/` (or
 value. Never set `PUSH_TEST_ENDPOINT` on a real server. `tests/unit-webpush.cjs` checks
 the notification encryption against Node's own crypto.
 
+### Version number and "what's new"
+
+The version and its notes live in `web/changelog.json`, newest first. For each update
+people should hear about, add an entry at the top with a higher `version`. The build
+bakes the version into the app (shown in the footer) and writes `/version.json`. Copies
+of the app that are already open check it every few minutes. When there's a newer
+version, signed-in people see a notice with the new notes and an **Update now** button.
+
+The page itself, `sw.js` and `version.json` are always checked with the server
+(`pb_hooks/caching.pb.js`), so nobody gets stuck on an old version.
+
 ## Project layout
 
 ```

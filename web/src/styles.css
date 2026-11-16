@@ -4511,3 +4511,63 @@ img.emoji {
     height: var(--vv-height, 100%);
   }
 }
+
+/* ==========================================================================
+   "A new version is ready"
+   ========================================================================== */
+.update-banner {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  width: min(380px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  animation: toast 0.25s ease-out;
+}
+.update-banner-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.update-banner-head > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--accent);
+}
+.update-banner-head > div {
+  flex: 1;
+  min-width: 0;
+}
+.update-banner-head .muted {
+  display: block;
+}
+.update-banner-head .icon-btn {
+  margin: -6px -8px 0 0;
+}
+.update-banner-notes {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.update-banner-notes li + li {
+  margin-top: 3px;
+}
+.update-banner-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+@media (max-width: 720px) {
+  .update-banner {
+    right: 16px;
+    left: 16px;
+    width: auto;
+    bottom: calc(var(--tabbar-h) + 12px);
+  }
+}

@@ -4,6 +4,8 @@ import { ChevronDown, Gift, ListChecks, LogOut, Moon, ShoppingBag, Shuffle, Sun,
 import { pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
 import { Menu } from "./ui.jsx";
+import UpdateBanner from "./UpdateBanner.jsx";
+import { APP_VERSION } from "../lib/updates.js";
 
 function isDark(mode) {
   if (mode === "system") return window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -109,6 +111,7 @@ export default function Layout({ children }) {
         </div>
       </header>
       <main className="container main">{children}</main>
+      <UpdateBanner enabled={!!user} />
       {user && (
         <nav className="tabbar" aria-label="Main">
           {[...NAV, { to: "/account", icon: UserRound, label: "Account" }].map(({ to, icon: Icon, label, short, end, also }) => (
@@ -120,7 +123,7 @@ export default function Layout({ children }) {
         </nav>
       )}
       <footer className="footer">
-        <div className="container">{config.appName || "Gift List"} · self-hosted with PocketBase</div>
+        <div className="container">{config.appName || "Gift List"} · version {APP_VERSION} · self-hosted with PocketBase</div>
       </footer>
     </div>
   );

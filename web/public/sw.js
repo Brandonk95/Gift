@@ -1,10 +1,10 @@
 // Minimal service worker so the app can be installed on phones and computers.
 // Everything comes from the network as usual; the app shell is kept so opening
 // the installed app offline shows a page instead of the browser's error.
-const SHELL = "giftlist-shell-v2";
+const SHELL = "giftlist-shell-v3";
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => c.add("/")));
+  e.waitUntil(caches.open(SHELL).then((c) => c.add(new Request("/", { cache: "reload" }))));
   self.skipWaiting();
 });
 
@@ -14,7 +14,12 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.mode !== "navigate") return;
-  e.respondWith(fetch(e.request).catch(() => caches.match("/")));
+  // always ask the server (never a stale copy), so an update shows up on the next visit
+  e.respondWith(
+    fetch(e.request, { cache: "no-cache" })
+      .catch(() => fetch(e.request))
+      .catch(() => caches.match("/"))
+  );
 });
 
 // Phone notifications (see pb_hooks/lib/push.js). The message is { title, body, url, tag }.

@@ -14,8 +14,21 @@ trackVisualViewport();
 
 // lets the app be installed (home screen / desktop) and receive shared links
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" }).catch(() => {}));
 }
+
+// a copy of the app opened before an update can ask for files that the update replaced:
+// load the new version instead of breaking (once, so a real outage can't loop)
+window.addEventListener("vite:preloadError", (e) => {
+  try {
+    if (sessionStorage.getItem("reloaded-for-update")) return;
+    sessionStorage.setItem("reloaded-for-update", "1");
+  } catch {
+    return;
+  }
+  e.preventDefault();
+  window.location.reload();
+});
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
