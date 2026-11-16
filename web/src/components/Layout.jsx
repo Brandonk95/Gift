@@ -111,7 +111,7 @@ export default function Layout({ children }) {
         </div>
       </header>
       <main className="container main">{children}</main>
-      <UpdateBanner enabled={!!user} />
+      <UpdateBanner user={user} />
       {user && (
         <nav className="tabbar" aria-label="Main">
           {[...NAV, { to: "/account", icon: UserRound, label: "Account" }].map(({ to, icon: Icon, label, short, end, also }) => (

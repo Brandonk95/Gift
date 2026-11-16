@@ -1,6 +1,7 @@
 // Notices when a newer version of the app has been put on the server while this copy
 // is open, by checking /version.json now and then (see vite.config.js).
 import { useEffect, useState } from "react";
+import changelog from "../../changelog.json";
 
 /* global __APP_VERSION__ */
 export const APP_VERSION = typeof __APP_VERSION__ === "string" ? __APP_VERSION__ : "dev";
@@ -59,4 +60,46 @@ export function useNewVersion(enabled = true) {
     };
   }, [enabled]);
   return update;
+}
+
+// After an update has loaded (by Update now, a reload, or just reopening the app):
+// the notes this person hasn't seen yet, once. Null when there's nothing to show.
+// Brand-new accounts aren't told about versions from before they signed up.
+const SEEN = "seen-version";
+
+function sinceVersion(from) {
+  return changelog.filter((c) => newer(c.version, from));
+}
+
+export function whatsNew(user) {
+  if (!user || APP_VERSION === "dev") return null;
+  let seen = "";
+  try {
+    seen = localStorage.getItem(SEEN) || "";
+  } catch {
+    return null;
+  }
+  if (seen) {
+    if (!newer(APP_VERSION, seen)) return null;
+    const changes = sinceVersion(seen).filter((c) => !newer(c.version, APP_VERSION));
+    return changes.length ? { version: APP_VERSION, changes } : null;
+  }
+  // first time on this device: only worth telling people who were here before this version
+  const joined = Date.parse(String(user.created || "").replace(" ", "T"));
+  const released = Date.parse(changelog[0]?.date || "");
+  if (!(joined < released)) {
+    markSeen();
+    return null;
+  }
+  // everything released since they joined, newest first (the notice shows the first few notes)
+  const changes = changelog.filter((c) => !newer(c.version, APP_VERSION) && Date.parse(c.date) > joined).slice(0, 3);
+  return changes.length ? { version: APP_VERSION, changes } : null;
+}
+
+export function markSeen() {
+  try {
+    localStorage.setItem(SEEN, APP_VERSION);
+  } catch {
+    // private mode: nothing to remember
+  }
 }

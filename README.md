@@ -273,6 +273,8 @@ people should hear about, add an entry at the top with a higher `version`. The b
 bakes the version into the app (shown in the footer) and writes `/version.json`. Copies
 of the app that are already open check it every few minutes. When there's a newer
 version, signed-in people see a notice with the new notes and an **Update now** button.
+Right after an update loads (however it got there), they see the notes they haven't seen
+yet once, under "Updated to version …".
 
 The page itself, `sw.js` and `version.json` are always checked with the server
 (`pb_hooks/caching.pb.js`), so nobody gets stuck on an old version.

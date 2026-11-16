@@ -1,9 +1,16 @@
 [
   {
+    "version": "1.6.1",
+    "date": "2026-11-16",
+    "notes": [
+      "Right after an update, a card like this one shows what's new"
+    ]
+  },
+  {
     "version": "1.6.0",
     "date": "2026-11-16",
     "notes": [
-      "You'll see a notice like this one whenever there's a new version, with what changed",
+      "A heads-up when a new version is ready while the app is open, with what changed",
       "Updates show up right away instead of the app sometimes staying on an old version",
       "Pasting links works better on iPhone, including short links like a.co/…",
       "Fixed the app looking zoomed in or out on iPhone"
