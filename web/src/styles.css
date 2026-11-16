@@ -4611,3 +4611,36 @@ img.emoji {
     margin-left: auto;
   }
 }
+
+/* gift editor: the "paste an image URL" box folds away on phones */
+.image-url-toggle {
+  display: none;
+}
+@media (max-width: 600px) {
+  .image-url-toggle {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 6px;
+    padding: 6px 2px;
+    border: 0;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.86rem;
+    font-weight: 550;
+    cursor: pointer;
+  }
+  .image-url-chevron {
+    transition: transform 0.2s;
+  }
+  .image-url-toggle.open .image-url-chevron {
+    transform: rotate(180deg);
+  }
+  .image-url-field:not(.open) {
+    display: none;
+  }
+  .image-url-field > .muted {
+    display: none;
+  }
+}

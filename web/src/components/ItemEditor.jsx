@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, ImagePlus, Info, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ImagePlus, Info, Link2, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { errorMessage, itemImage, pb } from "../lib/pb.js";
 import { PRIORITIES, cleanUrl, findUrl, hostname, isWishlistUrl } from "../lib/format.js";
@@ -29,6 +29,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
   const [file, setFile] = useState(null);
   const [filePreview, setFilePreview] = useState("");
   const [removeImage, setRemoveImage] = useState(false);
+  const [showImageUrl, setShowImageUrl] = useState(false); // phones: the image link box is folded away
   const [newCat, setNewCat] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -412,7 +413,12 @@ export default function ItemEditor({ listId, item, initial, currency, categories
                 )}
               </div>
             )}
-            <label>
+            {/* on phones the image link box is tucked behind this button (styles.css) */}
+            <button type="button" className={`image-url-toggle ${showImageUrl ? "open" : ""}`} aria-expanded={showImageUrl} onClick={() => setShowImageUrl((v) => !v)}>
+              <Link2 size={14} /> Paste an image link
+              <ChevronDown size={14} className="image-url-chevron" />
+            </button>
+            <label className={`image-url-field ${showImageUrl ? "open" : ""}`}>
               <span className="muted small">…or paste an image URL</span>
               <input type="text" inputMode="url" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={form.image_url} onChange={set("image_url")} placeholder="https://…/photo.jpg" />
             </label>

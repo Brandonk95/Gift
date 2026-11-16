@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.6.3",
+    "date": "2026-11-16",
+    "notes": [
+      "On phones, the image link box in the gift editor is folded away under “Paste an image link” to keep things tidy"
+    ]
+  },
+  {
     "version": "1.6.2",
     "date": "2026-11-16",
     "notes": [
