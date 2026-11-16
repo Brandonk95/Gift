@@ -1,5 +1,13 @@
 [
   {
+    "version": "1.7.0",
+    "date": "2026-11-16",
+    "notes": [
+      "Paste a store link into the add bar and the gift starts filling in right away, with no need to press Add",
+      "Anything you typed before pasting, like the gift's name, is kept"
+    ]
+  },
+  {
     "version": "1.6.3",
     "date": "2026-11-16",
     "notes": [

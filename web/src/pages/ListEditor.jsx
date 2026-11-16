@@ -149,24 +149,39 @@ export default function ListEditor() {
     }
   };
 
+  // text with a link in it: open the gift editor, which reads the store page right away
+  // (or "Add many" for several links / a wish list). False when there's no link.
+  const addFromLink = (v) => {
+    const url = findUrl(v);
+    if (!url) return false;
+    // several links, or a wish list: add them all at once
+    if (findUrls(v).length > 1 || isWishlistUrl(url)) setBulk(v);
+    else {
+      // text shared along with the link is usually the product name
+      const rest = v.split(/\s+/).filter((w) => !findUrl(w)).join(" ").trim();
+      setEditing({ initial: { url, name: rest.length > 3 && rest.length < 150 ? rest : "" } });
+    }
+    setQuick("");
+    return true;
+  };
+
+  // pasting a link starts filling in the gift without having to press Add
+  const quickPaste = (e) => {
+    const d = e.clipboardData;
+    const pasted = (d && (d.getData("text/plain") || d.getData("text") || d.getData("text/uri-list"))) || "";
+    if (!findUrl(pasted)) return; // plain text: paste as usual
+    e.preventDefault();
+    const el = e.currentTarget;
+    // keep anything already typed (like the gift's name), minus what the paste replaces
+    const typed = (quick.slice(0, el.selectionStart ?? quick.length) + " " + quick.slice(el.selectionEnd ?? quick.length)).trim();
+    addFromLink(`${typed} ${pasted}`.trim());
+  };
+
   const quickAdd = async (e) => {
     e.preventDefault();
     const v = quick.trim();
     if (!v) return;
-    const url = findUrl(v);
-    // several links, or a wish list: add them all at once
-    if (findUrls(v).length > 1 || isWishlistUrl(url)) {
-      setBulk(v);
-      setQuick("");
-      return;
-    }
-    if (url) {
-      // text shared along with the link is usually the product name
-      const rest = v.split(/\s+/).filter((w) => !findUrl(w)).join(" ").trim();
-      setEditing({ initial: { url, name: rest.length > 3 && rest.length < 150 ? rest : "" } });
-      setQuick("");
-      return;
-    }
+    if (addFromLink(v)) return;
     try {
       const saved = await pb.collection("items").create({ list: list.id, name: v, priority: "medium", quantity: 1, sort: Date.now() % 2147483647 });
       replaceItem(saved);
@@ -323,7 +338,7 @@ export default function ListEditor() {
 
       <form className="quick-add" onSubmit={quickAdd}>
         <Plus size={18} className="quick-add-icon" />
-        <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="Add a gift or paste a link" aria-label="Quick add a gift" />
+        <input value={quick} onChange={(e) => setQuick(e.target.value)} onPaste={quickPaste} placeholder="Add a gift or paste a link" aria-label="Quick add a gift" />
         <button className="btn btn-primary btn-sm" disabled={!quick.trim()}>
           Add
         </button>
