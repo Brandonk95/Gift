@@ -136,52 +136,39 @@ function reservationEmail({ appName, appUrl, currency, list, item }) {
   const title = list.getString("title");
   const listLink = `${appUrl}/s/${list.getString("share_token")}`;
   const shopLink = `${appUrl}/shopping`;
-  const buyUrl = item.getString("url");
   const date = formatDate(list.getString("event_date"));
   const days = daysUntil(list.getString("event_date"));
   const when = date ? (days !== null && days >= 0 ? `${date} — ${days === 0 ? "today" : days === 1 ? "tomorrow" : `${days} days from now`}` : date) : "";
 
-  const card = m.row({
-    image: itemImage(appUrl, item),
-    emoji: "🎁",
-    title: item.getString("name"),
-    detail: itemDetail(item) || `From ${owner}'s list`,
-    value: list.getBool("hide_prices") ? "" : formatPrice(item.getFloat("price") * Math.max(1, item.getInt("quantity")), currency),
-  });
-
+  // Written like a receipt for something you just did: no price, no store link and no
+  // pictures, which make Gmail file it under Promotions. The store link is one tap away
+  // on the shopping list.
   const content =
     m.paragraph(
-      `You reserved this gift on <strong>${m.esc(owner)}</strong>'s list “${m.esc(title)}”. Nobody else can reserve it for the next <strong>${RESERVATION_DAYS} days</strong>. Renew it from your shopping list to keep it longer, or mark it as bought and it stays yours.`
+      `You reserved <strong>${m.esc(item.getString("name"))}</strong> on ${m.esc(owner)}'s list “${m.esc(title)}”. Nobody else can reserve it for the next ${RESERVATION_DAYS} days.`
     ) +
-    m.panel(card) +
-    (when ? m.paragraph(`📅 <strong>${m.esc(list.getString("occasion") ? occasionOf(list)[0] : "The occasion")}:</strong> ${m.esc(when)}`) : "") +
-    (item.getString("description") ? m.paragraph(`<span style="color:#71717a">Notes from ${m.esc(owner)}:</span> ${m.esc(item.getString("description"))}`) : "") +
-    (buyUrl ? m.button(buyUrl, "See where to buy it") : m.button(shopLink, "Open my shopping list")) +
-    m.paragraph(
-      buyUrl
-        ? `It's also on your <a href="${m.esc(shopLink)}" style="color:${m.accent()}">shopping list</a>, where you can tick it off once you've bought it. Changed your mind? Cancel the reservation from <a href="${m.esc(listLink)}" style="color:${m.accent()}">the list</a>.`
-        : `Tick it off on your shopping list once you've bought it. Changed your mind? Cancel the reservation from <a href="${m.esc(listLink)}" style="color:${m.accent()}">the list</a>.`
-    ) +
-    m.note(`🤫 ${m.esc(owner)} can't see who reserved what — the surprise is safe.`);
+    (when ? m.paragraph(`${m.esc(list.getString("occasion") ? occasionOf(list)[0] : "The occasion")}: ${m.esc(when)}`) : "") +
+    m.paragraph(`To keep it longer, renew it from your shopping list. Once you've bought it, tick it off there and it stays yours.`) +
+    m.button(shopLink, "Open my shopping list") +
+    m.note(`${m.esc(owner)} can't see who reserved what. Changed your mind? You can cancel the reservation from your shopping list.`);
 
   const html = m.render({
     appName,
     appUrl,
     preheader: `“${item.getString("name")}” is reserved for you on ${owner}'s list.`,
-    heading: "Gift reserved 🎉",
+    heading: `You reserved ${item.getString("name")}`,
     content,
-    reason: `You're receiving this because you reserved a gift on ${appName}.`,
+    reason: `You're getting this because you reserved a gift on ${appName}.`,
   });
   const text = m.plainText([
-    `You reserved "${item.getString("name")}" on ${owner}'s list "${title}".`,
-    `It's held for ${RESERVATION_DAYS} days. Renew it from your shopping list to keep it longer, or mark it as bought and it stays yours.`,
+    `You reserved "${item.getString("name")}" on ${owner}'s list "${title}". Nobody else can reserve it for the next ${RESERVATION_DAYS} days.`,
     when ? `Occasion: ${when}` : null,
-    buyUrl ? `Where to buy: ${buyUrl}` : null,
+    `To keep it longer, renew it from your shopping list. Once you've bought it, tick it off there and it stays yours.`,
     `Your shopping list: ${shopLink}`,
     `${owner} can't see who reserved what.`,
-    `— ${appName}`,
+    appName,
   ]);
-  return { subject: `Reserved: ${item.getString("name")} for ${owner}`, html, text };
+  return { subject: `You reserved ${item.getString("name")} for ${owner}`, html, text };
 }
 
 // A day before a reservation runs out
@@ -191,24 +178,15 @@ function reservationReminderEmail({ appName, appUrl, currency, list, item, expir
   const shopLink = `${appUrl}/shopping`;
   const listLink = `${appUrl}/s/${list.getString("share_token")}`;
 
-  const card = m.row({
-    image: itemImage(appUrl, item),
-    emoji: "🎁",
-    title: item.getString("name"),
-    detail: itemDetail(item) || `From ${owner}'s list`,
-    value: list.getBool("hide_prices") ? "" : formatPrice(item.getFloat("price") * Math.max(1, item.getInt("quantity")), currency),
-  });
-
   const content =
     m.paragraph(
-      `Your reservation on <strong>${m.esc(owner)}</strong>'s list “${m.esc(title)}” ends <strong>${m.esc(formatDate(expires) || "soon")}</strong>. After that, anyone else can reserve this gift.`
+      `Your reservation for <strong>${m.esc(item.getString("name"))}</strong> on ${m.esc(owner)}'s list “${m.esc(title)}” ends ${m.esc(formatDate(expires) || "soon")}. After that, anyone else can reserve it.`
     ) +
-    m.panel(card) +
     m.button(shopLink, RESERVATION_DAYS === 7 ? "Keep it for another week" : `Keep it for another ${HOLD}`) +
     m.paragraph(
       `Already bought it? Tick it off on your shopping list and it stays yours. Don't need it anymore? Do nothing, or cancel it from <a href="${m.esc(listLink)}" style="color:${m.accent()}">the list</a>.`
     ) +
-    m.note(`🤫 ${m.esc(owner)} can't see who reserved what.`);
+    m.note(`${m.esc(owner)} can't see who reserved what.`);
 
   const html = m.render({
     appName,
@@ -222,10 +200,10 @@ function reservationReminderEmail({ appName, appUrl, currency, list, item, expir
     `Your reservation for "${item.getString("name")}" on ${owner}'s list "${title}" ends ${formatDate(expires) || "soon"}.`,
     `Keep it for another ${HOLD}: ${shopLink}`,
     `Already bought it? Tick it off on your shopping list and it stays yours.`,
-    `— ${appName}`,
+    appName,
   ]);
   return {
-    subject: `Renew your reservation: ${item.getString("name")}`,
+    subject: `Your reservation for ${item.getString("name")} ends soon`,
     html,
     text,
     push: { title: "Your reservation ends soon", body: `“${item.getString("name")}” on ${owner}'s list is released ${formatDate(expires) || "soon"}. Tap to keep it.`, url: shopLink },
@@ -240,7 +218,6 @@ function reservationReleasedEmail({ appName, appUrl, list, item }) {
     m.paragraph(
       `Your reservation for <strong>${m.esc(item.getString("name"))}</strong> on ${m.esc(owner)}'s list “${m.esc(list.getString("title"))}” ran out, so anyone can reserve it now.`
     ) +
-    m.panel(m.row({ image: itemImage(appUrl, item), emoji: "🎁", title: item.getString("name"), detail: itemDetail(item) || `From ${owner}'s list` })) +
     m.button(listLink, "Reserve it again") +
     m.note(`Still planning to get it? Reserve it again before someone else does. Bought it already? Reserve it and tick it off as bought so it stays yours.`);
   const html = m.render({
@@ -257,7 +234,7 @@ function reservationReleasedEmail({ appName, appUrl, list, item }) {
     `— ${appName}`,
   ]);
   return {
-    subject: `Reservation ended: ${item.getString("name")}`,
+    subject: `Your reservation for ${item.getString("name")} ended`,
     html,
     text,
     push: { title: "Your reservation ended", body: `“${item.getString("name")}” on ${owner}'s list is open again. Tap to reserve it again.`, url: listLink },
@@ -344,7 +321,6 @@ function questionAnsweredEmail({ appName, appUrl, list, item, question, answer }
 // A gift you reserved (or chipped in on) got cheaper at the store
 function priceDropEmail({ appName, appUrl, list, item, listed, now, currency }) {
   const owner = listOwners(list) || "your friend";
-  const buyUrl = item.getString("url");
   const saved = formatPrice(listed - now, currency);
   const content =
     m.paragraph(`Good news: <strong>${m.esc(item.getString("name"))}</strong>, which you're getting for ${m.esc(owner)}, is cheaper right now.`) +
@@ -357,7 +333,7 @@ function priceDropEmail({ appName, appUrl, list, item, listed, now, currency }) 
         value: formatPrice(now, currency),
       })
     ) +
-    m.button(buyUrl, "See the deal") +
+    m.button(buyUrl, "Open the store page") +
     m.note(`Prices change quickly, so check the store before you buy. We check gift links about once a week.`);
   const html = m.render({
     appName,
@@ -369,7 +345,7 @@ function priceDropEmail({ appName, appUrl, list, item, listed, now, currency }) 
   });
   const text = m.plainText([
     `${item.getString("name")} (for ${owner}) is now ${formatPrice(now, currency)}, down from ${formatPrice(listed, currency)}.`,
-    `See the deal: ${buyUrl}`,
+    `Store page: ${buyUrl}`,
     `— ${appName}`,
   ]);
   return { subject: `${item.getString("name")} is now ${formatPrice(now, currency)}`, html, text };

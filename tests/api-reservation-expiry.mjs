@@ -56,11 +56,11 @@ await new Promise((r) => setTimeout(r, 1500));
 const after = (await req("GET", `/api/collections/reservations/records/${r1.data.id}`, { token: su })).data;
 check("marked as reminded", after.reminded === true, after);
 const sink = readFileSync(MAIL_LOG, "utf8").slice(sinkBefore);
-check("reminder email sent to the reserver", sink.includes("Renew your reservation") && sink.includes(friend.email), sink.slice(0, 300));
+check("reminder email sent to the reserver", sink.includes("Your reservation for Lamp ends soon") && sink.includes(friend.email), sink.slice(0, 300));
 await cron();
 await new Promise((r) => setTimeout(r, 800));
 const sink2 = readFileSync(MAIL_LOG, "utf8").slice(sinkBefore);
-check("only one reminder", sink2.split("Renew your reservation: Lamp").length - 1 <= 2, sink2.length);
+check("only one reminder", sink2.split("Your reservation for Lamp ends soon").length - 1 <= 2, sink2.length);
 
 // expired but not yet cleaned up: someone else can take it
 await setRes(r1.data.id, { expires: pbDate(Date.now() - 60e3) });

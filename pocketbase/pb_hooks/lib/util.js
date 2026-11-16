@@ -55,6 +55,9 @@ const EMAIL_KINDS = {
   santa: "Secret Santa messages and updates",
 };
 
+// Emails about your own reservations: receipts rather than subscriptions (see sendUserMail)
+const RECEIPTS = { reservations: true, reminders: true };
+
 function emailPrefs(user) {
   try {
     return JSON.parse(user.getString("email_prefs") || "{}") || {};
@@ -98,6 +101,14 @@ function sendUserMail(app, user, kind, mail) {
   if (!smtpEnabled(app) || !wantsEmail(user, kind)) return pushed > 0;
   const q = unsubscribeQuery(user, kind);
   const link = `${base}/unsubscribe?${q}`;
+  if (RECEIPTS[kind]) {
+    // About something you did yourself (reserving a gift): sent like a receipt, with a
+    // settings link but without the one-click unsubscribe headers, which mark mail as
+    // bulk mail and push it into Gmail's Promotions tab.
+    const settingsLink = `<a href="${escapeHtml(base)}/account#emails" style="color:#71717a;text-decoration:underline">Email settings</a><br>`;
+    sendMail(app, [user.email()], mail.subject, mail.html.replace("<!--giftlist-unsub-->", settingsLink), mail.text, {}, mail.fromPerson);
+    return true;
+  }
   const footer =
     `Don't want ${EMAIL_KINDS[kind]}? <a href="${escapeHtml(link)}" style="color:#71717a;text-decoration:underline">Unsubscribe</a>` +
     ` · <a href="${escapeHtml(base)}/account#emails" style="color:#71717a;text-decoration:underline">Email settings</a><br>`;

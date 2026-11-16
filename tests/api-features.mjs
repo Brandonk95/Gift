@@ -156,6 +156,13 @@ let qid;
 {
   const lamp = await add(owner, list, "Lamp");
   const r = (await req("POST", "/api/collections/reservations/records", { token: bo.token, share, body: { item: lamp.id, user: bo.id } })).data;
+  await wait(1200);
+  const receipt = lastEmlTo(bo.email);
+  check(
+    "the reserved email reads like a receipt (no bulk-mail headers, no price or pictures)",
+    /Subject: You reserved Lamp/.test(receipt) && !/List-Unsubscribe/i.test(receipt) && !/<img/i.test(receipt) && /Email settings/.test(receipt),
+    receipt.slice(0, 400)
+  );
   const past = new Date(Date.now() - 6e4).toISOString().replace("T", " ");
   await req("PATCH", `/api/collections/reservations/records/${r.id}`, { token: su, body: { expires: past, reminded: true } });
   const mark = mailMark();
