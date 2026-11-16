@@ -125,10 +125,9 @@ function shareEmail({ appName, appUrl, currency, from, list, items, note, link }
     note ? `"${note}"` : null,
     `Open the list: ${link}`,
     `Reserve a gift so nobody else buys the same thing. ${from} can't see what's been reserved.`,
-    `Can't find our emails? Check your spam or junk folder and mark us as "Not spam".`,
     `— ${appName}`,
   ]);
-  return { subject: `${from} shared a gift list with you: ${title}`, html, text };
+  return { subject: `${from} shared a gift list with you: ${title}`, html, text, fromPerson: from };
 }
 
 // ------------------------------------------------------- reservation reminder
@@ -364,7 +363,7 @@ function priceDropEmail({ appName, appUrl, list, item, listed, now, currency }) 
     appName,
     appUrl,
     preheader: `Now ${formatPrice(now, currency)} (was ${formatPrice(listed, currency)}).`,
-    heading: "Price drop 📉",
+    heading: "It costs less now",
     content,
     reason: `You're receiving this because you reserved a gift on ${appName}.`,
   });
@@ -373,7 +372,7 @@ function priceDropEmail({ appName, appUrl, list, item, listed, now, currency }) 
     `See the deal: ${buyUrl}`,
     `— ${appName}`,
   ]);
-  return { subject: `Price drop: ${item.getString("name")} is now ${formatPrice(now, currency)}`, html, text };
+  return { subject: `${item.getString("name")} is now ${formatPrice(now, currency)}`, html, text };
 }
 
 // Secret Santa message (the Santa's name is never in a message to their recipient)
@@ -397,7 +396,7 @@ function santaMessageEmail({ appName, appUrl, exchange, from, toSanta, text, lin
     reason: `You're receiving this because you're in a Secret Santa on ${appName}.`,
   });
   const textOut = m.plainText([toSanta ? `${from} (your recipient) wrote:` : "Your Secret Santa wrote:", `"${text}"`, `Reply: ${link}`, `— ${appName}`]);
-  return { subject: toSanta ? `🎅 ${from} sent you a message` : "🎅 Your Secret Santa sent you a message", html, text: textOut };
+  return { subject: toSanta ? `${from} sent you a message` : "Your Secret Santa sent you a message", html, text: textOut };
 }
 
 // Nightly digest: gifts added to lists the person follows
@@ -495,7 +494,7 @@ function exchangeInviteEmail({ appName, appUrl, currency, exchange, from, link }
   const facts = exchangeFacts(exchange, currency);
   const note = exchange.getString("message");
   const content =
-    m.paragraph(`<strong>${m.esc(from)}</strong> is organizing a Secret Santa gift exchange, <strong>“${m.esc(name)}”</strong>, and wants you in it. 🎅`) +
+    m.paragraph(`<strong>${m.esc(from)}</strong> is organizing a Secret Santa gift exchange, <strong>“${m.esc(name)}”</strong>, and wants you in it.`) +
     quote(note) +
     factsTable(facts.rows) +
     m.button(link, "Join the exchange") +
@@ -508,7 +507,7 @@ function exchangeInviteEmail({ appName, appUrl, currency, exchange, from, link }
     appName,
     appUrl,
     preheader: `${from} invited you to the Secret Santa “${name}”.`,
-    heading: "You're invited to a Secret Santa 🎁",
+    heading: "You're invited to a Secret Santa",
     content,
     reason: `You're receiving this because ${from} entered your email address on ${appName}.`,
   });
@@ -521,7 +520,7 @@ function exchangeInviteEmail({ appName, appUrl, currency, exchange, from, link }
     "Nobody sees who drew whom, not even the organizer.",
     `— ${appName}`,
   ]);
-  return { subject: `${from} invited you to a Secret Santa: ${name}`, html, text };
+  return { subject: `${from} invited you to a Secret Santa: ${name}`, html, text, fromPerson: from };
 }
 
 function exchangeMatchEmail({ appName, appUrl, currency, exchange, giver, recipient, listLink, exchangeLink, redraw }) {
@@ -543,7 +542,7 @@ function exchangeMatchEmail({ appName, appUrl, currency, exchange, giver, recipi
     appName,
     appUrl,
     preheader: `You're the Secret Santa for ${recipient}. Shh!`,
-    heading: "You've drawn a name 🎁",
+    heading: "You've drawn a name",
     content,
     reason: `You're receiving this because you're in the Secret Santa “${name}” on ${appName}.`,
   });
@@ -556,7 +555,7 @@ function exchangeMatchEmail({ appName, appUrl, currency, exchange, giver, recipi
     "Keep it secret! Only you know who you're buying for.",
     `— ${appName}`,
   ]);
-  return { subject: `🎅 You're the Secret Santa for ${recipient}`, html, text };
+  return { subject: `You're the Secret Santa for ${recipient}`, html, text };
 }
 
 function exchangeListReadyEmail({ appName, appUrl, exchange, recipient, listLink }) {
@@ -574,7 +573,7 @@ function exchangeListReadyEmail({ appName, appUrl, exchange, recipient, listLink
     reason: `You're receiving this because you're in the Secret Santa “${name}” on ${appName}.`,
   });
   const text = m.plainText([`${recipient} shared their wish list in "${name}": ${listLink}`, `— ${appName}`]);
-  return { subject: `${recipient} shared their wish list 🎁`, html, text };
+  return { subject: `${recipient} shared their wish list`, html, text };
 }
 
 function duration(seconds) {

@@ -26,10 +26,15 @@ function smtpEnabled(app) {
   return !!app.settings().smtp.enabled;
 }
 
-function sendMail(app, to, subject, html, text, headers) {
+// fromPerson: the person the email is about ("Sam"), shown as "Sam via GiftMe".
+// Mail that looks like it's from a person lands in Gmail's main inbox more often.
+function sendMail(app, to, subject, html, text, headers, fromPerson) {
   const meta = app.settings().meta;
+  // PocketBase's stock sender name is "Support"; the app's name reads better than that
+  const appName = (meta.senderName && meta.senderName !== "Support" ? meta.senderName : meta.appName) || meta.senderName;
+  const person = String(fromPerson || "").replace(/[<>"\r\n]/g, "").trim().slice(0, 60);
   const message = new MailerMessage({
-    from: { address: meta.senderAddress, name: meta.senderName || meta.appName },
+    from: { address: meta.senderAddress, name: person ? `${person} via ${appName}` : appName },
     to: to.map((address) => ({ address })),
     subject,
     html,
@@ -101,7 +106,7 @@ Unsubscribe from ${EMAIL_KINDS[kind]}: ${link}
 `, {
     "List-Unsubscribe": `<${base}/api/giftlist/unsubscribe?${q}>`,
     "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-  });
+  }, mail.fromPerson);
   return true;
 }
 

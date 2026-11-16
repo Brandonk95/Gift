@@ -1,5 +1,12 @@
 [
   {
+    "version": "1.7.1",
+    "date": "2026-11-16",
+    "notes": [
+      "Emails are simpler and more personal, so Gmail should file them under Primary instead of Promotions"
+    ]
+  },
+  {
     "version": "1.7.0",
     "date": "2026-11-16",
     "notes": [

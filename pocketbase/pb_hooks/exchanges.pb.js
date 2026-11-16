@@ -123,7 +123,7 @@ routerAdd(
         e.app.save(m);
       }
       try {
-        u.sendMail(e.app, [addr], mail.subject, mail.html, mail.text);
+        u.sendMail(e.app, [addr], mail.subject, mail.html, mail.text, null, mail.fromPerson);
         result.sent++;
       } catch (err) {
         console.log("[giftlist] exchange invite failed for", addr, err);

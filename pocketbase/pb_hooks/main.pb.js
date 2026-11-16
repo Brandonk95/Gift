@@ -240,7 +240,7 @@ routerAdd(
     const failed = [];
     for (const addr of emails) {
       try {
-        u.sendMail(e.app, [addr], mail.subject, mail.html, mail.text);
+        u.sendMail(e.app, [addr], mail.subject, mail.html, mail.text, null, mail.fromPerson);
       } catch (err) {
         console.log("[giftlist] share email failed for", addr, err);
         failed.push(addr);
