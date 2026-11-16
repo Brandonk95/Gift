@@ -4503,8 +4503,11 @@ img.emoji {
   overflow-wrap: anywhere;
 }
 @media (max-width: 600px) {
-  /* the bottom sheet stays above the on-screen keyboard (--vv-bottom from lib/viewport.js) */
+  /* the bottom sheet sits inside the part of the screen you can see, so it stays above
+     the iPhone keyboard (--vv-top / --vv-height come from lib/viewport.js) */
   .modal-backdrop {
-    bottom: var(--vv-bottom, 0px);
+    top: var(--vv-top, 0px);
+    bottom: auto;
+    height: var(--vv-height, 100%);
   }
 }

@@ -106,7 +106,7 @@ export default function ListEditor() {
     if (!list || shared === null) return;
     setParams({}, { replace: true });
     const url = findUrl(shared);
-    const rest = shared.split(/\s+/).filter((w) => !/^(https?:\/\/|www\.)/i.test(w)).join(" ").trim();
+    const rest = shared.split(/\s+/).filter((w) => !findUrl(w)).join(" ").trim();
     // the Add-to-GiftMe button also sends what it read on the store page
     const extra = { image_url: params.get("img") || "", price: params.get("price") || "" };
     if (url) setEditing({ initial: { url, name: rest.length > 3 && rest.length < 150 ? rest : "", ...extra } });
@@ -162,7 +162,7 @@ export default function ListEditor() {
     }
     if (url) {
       // text shared along with the link is usually the product name
-      const rest = v.split(/\s+/).filter((w) => !/^(https?:\/\/|www\.)/i.test(w)).join(" ").trim();
+      const rest = v.split(/\s+/).filter((w) => !findUrl(w)).join(" ").trim();
       setEditing({ initial: { url, name: rest.length > 3 && rest.length < 150 ? rest : "" } });
       setQuick("");
       return;

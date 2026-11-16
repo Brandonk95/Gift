@@ -387,7 +387,7 @@ routerAdd(
       return partial(
         "This store blocks automatic previews" +
           (blocked === "captcha" ? " (it asked for a robot check)" : ` (error ${res.statusCode})`) +
-          ", so the details were guessed from the link. Check them, and add the price yourself. Tip: on the store page, right-click the product picture, choose “Copy image address” and paste it under the picture."
+          ", so the details were guessed from the link. Check them, and add the price yourself. Tip: on the store page, press and hold the product picture (or right-click it), choose “Copy image address” or “Copy” and paste it under the picture."
       );
     }
     if (res.statusCode >= 400) {

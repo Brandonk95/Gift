@@ -90,10 +90,15 @@ export function countdown(pbDate) {
   return "Past";
 }
 
+// a link with or without https://: "www.store.com/…", or a bare "a.co/d/abc" or
+// "amazon.com/dp/…" (phones often copy links like that). A bare domain needs a path,
+// so "e.g." or "Mr.Smith" in a gift name don't count.
+const URL_RE = /\bhttps?:\/\/[^\s<>"']+|(?:^|\s)(www\.[^\s<>"']+\.[^\s<>"']+|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)*\.[a-z]{2,}\/[^\s<>"']*)/gi;
+
 // every link in some pasted text, in order, without repeats
 export function findUrls(text) {
   const out = [];
-  for (const m of String(text || "").matchAll(/\bhttps?:\/\/[^\s<>"']+|(?:^|\s)(www\.[^\s<>"']+\.[^\s<>"']+)/gi)) {
+  for (const m of String(text || "").matchAll(URL_RE)) {
     let url = (m[1] || m[0]).trim().replace(/[),.!?]+$/, "");
     if (!/^https?:/i.test(url)) url = `https://${url}`;
     if (!out.includes(url)) out.push(url);
@@ -117,8 +122,16 @@ export function hostname(url) {
 // First web address in a piece of text, e.g. what a store app's "Share" button copies:
 // "Check out this Sony headset https://amzn.to/3xyz" → "https://amzn.to/3xyz"
 export function findUrl(text) {
-  const m = /\bhttps?:\/\/[^\s<>"']+/i.exec(text || "") || /(?:^|\s)(www\.[^\s<>"']+\.[^\s<>"']+)/i.exec(text || "");
+  const s = String(text || "");
+  const m = /\bhttps?:\/\/[^\s<>"']+/i.exec(s) || new RegExp(URL_RE.source, "i").exec(s);
   if (!m) return "";
-  const url = (m[1] || m[0]).replace(/[),.!?]+$/, "");
+  const url = (m[1] || m[0]).trim().replace(/[),.!?]+$/, "");
   return /^https?:/i.test(url) ? url : `https://${url}`;
+}
+
+// what gets saved from a link box: the link found in whatever was pasted, or what was typed
+export function cleanUrl(raw) {
+  const t = String(raw || "").trim();
+  if (!t) return "";
+  return findUrl(t) || (/\s/.test(t) ? t : `https://${t.replace(/^\/+/, "")}`);
 }

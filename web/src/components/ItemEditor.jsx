@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, ImagePlus, Info, Plus, Search, Sparkles, Trash2, X } from "lucide-react";
 import Modal from "./Modal.jsx";
 import { errorMessage, itemImage, pb } from "../lib/pb.js";
-import { PRIORITIES, findUrl, hostname, isWishlistUrl } from "../lib/format.js";
+import { PRIORITIES, cleanUrl, findUrl, hostname, isWishlistUrl } from "../lib/format.js";
 import { useApp } from "../lib/app.jsx";
 import Emoji from "./Emoji.jsx";
 
@@ -170,7 +170,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
     setError("");
     const body = {
       name: form.name.trim(),
-      url: form.url.trim(),
+      url: cleanUrl(form.url),
       price: form.price === "" ? 0 : Number(form.price),
       quantity: Math.max(1, parseInt(form.quantity, 10) || 1),
       priority: form.priority,
@@ -178,7 +178,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
       size: form.size.trim(),
       color: form.color.trim(),
       description: form.description.trim(),
-      image_url: form.image_url.trim(),
+      image_url: cleanUrl(form.image_url),
       goes_with: form.goes_with,
     };
     if (file) body.image = file;
@@ -202,12 +202,18 @@ export default function ItemEditor({ listId, item, initial, currency, categories
               Link <span className="muted">(optional)</span>
               <div className="input-group">
                 <input
-                  type="url"
+                  type="text"
+                  inputMode="url"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={form.url}
                   onChange={set("url")}
                   placeholder="Paste a product link to fill in the details"
                   onPaste={(e) => {
-                    const url = findUrl(e.clipboardData.getData("text"));
+                    // iPhones sometimes put a copied link only under text/uri-list
+                    const d = e.clipboardData;
+                    const url = findUrl(d && (d.getData("text/plain") || d.getData("text") || d.getData("text/uri-list")));
                     if (!url) return;
                     e.preventDefault();
                     setForm((f) => ({ ...f, url }));
@@ -408,7 +414,7 @@ export default function ItemEditor({ listId, item, initial, currency, categories
             )}
             <label>
               <span className="muted small">…or paste an image URL</span>
-              <input type="url" value={form.image_url} onChange={set("image_url")} placeholder="https://…/photo.jpg" />
+              <input type="text" inputMode="url" autoCapitalize="off" autoCorrect="off" spellCheck={false} value={form.image_url} onChange={set("image_url")} placeholder="https://…/photo.jpg" />
             </label>
             {(file || existingUpload || form.image_url) && (
               <button
