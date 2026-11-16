@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { errorMessage, pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
+import AuthShell, { PasswordInput } from "../components/AuthShell.jsx";
 
 export function safeNext(params) {
   const next = params.get("next") || "/";
@@ -41,29 +42,35 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-card card">
-      <h1>Welcome back</h1>
-      <p className="muted">Log in to manage your lists and reserve gifts.</p>
+    <AuthShell
+      title="Welcome back"
+      tagline="Good to see you again. Your lists are right where you left them."
+      footer={
+        <span>
+          New here? <Link to={`/register${params.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`}>Create an account</Link>
+        </span>
+      }
+    >
+      <p className="muted auth-sub">Log in to manage your lists and reserve gifts.</p>
       <form onSubmit={submit} className="form">
         <label>
           Email
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus autoComplete="email" />
         </label>
         <label>
-          Password
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
+          <span className="label-row">
+            Password
+            <Link to="/forgot" className="label-link">
+              Forgot password?
+            </Link>
+          </span>
+          <PasswordInput value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
         </label>
         {error && <div className="alert alert-error">{error}</div>}
         <button className="btn btn-primary btn-block" disabled={busy}>
           {busy ? "Logging in…" : "Log in"}
         </button>
       </form>
-      <div className="auth-links">
-        <Link to="/forgot">Forgot password?</Link>
-        <span>
-          New here? <Link to={`/register${params.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`}>Create an account</Link>
-        </span>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

@@ -3,6 +3,8 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { errorMessage, pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
 import { safeNext } from "./Login.jsx";
+import AuthShell, { PasswordInput } from "../components/AuthShell.jsx";
+import { Check } from "lucide-react";
 
 export default function Register() {
   const { user, config, notify } = useApp();
@@ -44,9 +46,16 @@ export default function Register() {
   };
 
   return (
-    <div className="auth-card card">
-      <h1>Create your account</h1>
-      <p className="muted">Make wish lists for any occasion and share them with friends.</p>
+    <AuthShell
+      title="Create your account"
+      tagline="Wish lists for birthdays, holidays and everything in between, with the surprise kept safe."
+      footer={
+        <span>
+          Already have an account? <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`}>Log in</Link>
+        </span>
+      }
+    >
+      <p className="muted auth-sub">Free, and it takes about a minute.</p>
       <form onSubmit={submit} className="form">
         <label>
           Your name
@@ -58,22 +67,25 @@ export default function Register() {
         </label>
         <label>
           Password
-          <input type="password" value={form.password} onChange={set("password")} required minLength={8} autoComplete="new-password" />
+          <PasswordInput value={form.password} onChange={set("password")} minLength={8} autoComplete="new-password" />
+          <span className={`pw-check ${form.password.length >= 8 ? "ok" : ""}`}>
+            <Check size={13} strokeWidth={3} /> At least 8 characters
+          </span>
         </label>
         <label>
           Confirm password
-          <input type="password" value={form.passwordConfirm} onChange={set("passwordConfirm")} required minLength={8} autoComplete="new-password" />
+          <PasswordInput value={form.passwordConfirm} onChange={set("passwordConfirm")} minLength={8} autoComplete="new-password" />
+          {form.passwordConfirm && (
+            <span className={`pw-check ${form.passwordConfirm === form.password ? "ok" : "bad"}`}>
+              <Check size={13} strokeWidth={3} /> {form.passwordConfirm === form.password ? "Passwords match" : "Doesn't match yet"}
+            </span>
+          )}
         </label>
         {error && <div className="alert alert-error">{error}</div>}
         <button className="btn btn-primary btn-block" disabled={busy}>
           {busy ? "Creating…" : "Sign up"}
         </button>
       </form>
-      <div className="auth-links">
-        <span>
-          Already have an account? <Link to={`/login${params.get("next") ? `?next=${encodeURIComponent(next)}` : ""}`}>Log in</Link>
-        </span>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

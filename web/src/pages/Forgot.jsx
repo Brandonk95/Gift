@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { errorMessage, pb } from "../lib/pb.js";
 import { useApp } from "../lib/app.jsx";
+import AuthShell from "../components/AuthShell.jsx";
 
 export default function Forgot() {
   const { config } = useApp();
@@ -25,8 +26,7 @@ export default function Forgot() {
   };
 
   return (
-    <div className="auth-card card">
-      <h1>Reset password</h1>
+    <AuthShell title="Reset your password" tagline="It happens to everyone. We'll get you back to your lists in a minute." footer={<Link to="/login">Back to log in</Link>}>
       {!config.smtpEnabled ? (
         <div className="alert">Email isn't configured on this server yet, so password reset emails can't be sent. Ask the site admin for help.</div>
       ) : sent ? (
@@ -44,9 +44,6 @@ export default function Forgot() {
           </button>
         </form>
       )}
-      <div className="auth-links">
-        <Link to="/login">Back to log in</Link>
-      </div>
-    </div>
+    </AuthShell>
   );
 }

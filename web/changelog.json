@@ -1,5 +1,14 @@
 [
   {
+    "version": "1.8.0",
+    "date": "2026-11-16",
+    "notes": [
+      "A brighter, friendlier log in and sign up page",
+      "Show or hide your password while you type it",
+      "Sign up checks your password as you go"
+    ]
+  },
+  {
     "version": "1.7.2",
     "date": "2026-11-16",
     "notes": [
