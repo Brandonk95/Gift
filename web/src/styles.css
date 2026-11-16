@@ -1517,7 +1517,7 @@ input[type="search"]::-webkit-search-cancel-button {
   gap: 10px;
 }
 .items-list {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -4569,5 +4569,45 @@ img.emoji {
     left: 16px;
     width: auto;
     bottom: calc(var(--tabbar-h) + 12px);
+  }
+}
+
+/* ==========================================================================
+   Long size / color / variant tags stay inside the gift card
+   ========================================================================== */
+.chip-static {
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.items > .item {
+  min-width: 0;
+}
+.item-list .star-btn {
+  flex-shrink: 0;
+}
+/* in the one-line list layout they're cut short instead */
+.item-list .item-meta .chip-static {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+@media (max-width: 600px) {
+  .item-list .item-meta .chip-static {
+    display: none;
+  }
+  /* list layout on phones: the name gets its own line, then price and buttons */
+  .item-list .item-body {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .item-list .item-head {
+    flex-basis: 100%;
+  }
+  .item-list .item-foot {
+    margin-left: auto;
   }
 }
