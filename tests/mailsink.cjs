@@ -16,7 +16,7 @@ net.createServer((s) => {
       const line = buf.slice(0, i); buf = buf.slice(i + 2);
       if (data) {
         if (line === ".") { data = false; const subj = /^Subject: (.*)$/m.exec(msg)?.[1]; log(`MAIL to ${rcpt.join(",")} subject: ${subj}`); fs.writeFileSync(dir + "/" + Date.now() + "-" + Math.random().toString(36).slice(2,6) + ".eml", msg); msg = ""; rcpt = []; s.write("250 ok\r\n"); }
-        else msg += line + "\n";
+        else msg += (line.startsWith("..") ? line.slice(1) : line) + "\n"; // undo SMTP dot-stuffing, like a real server
         continue;
       }
       const cmd = line.slice(0, 4).toUpperCase();
