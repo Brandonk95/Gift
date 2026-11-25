@@ -174,7 +174,7 @@ export function PushSettings() {
             ))}
           </ul>
           <div className="check-list email-prefs">
-            {PUSH_KINDS.map(([key, label, hint]) => (
+            {PUSH_KINDS.filter(([key]) => key !== "santa" || config.features?.santa).map(([key, label, hint]) => (
               <label key={key} className="toggle">
                 <input type="checkbox" checked={prefs[key] !== false} onChange={() => toggle(key)} />
                 <span>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { pb } from "./pb.js";
+import { useApp } from "./app.jsx";
 
 // Secret Santas where names are drawn and you have someone: [{ id, name, budget, currency, matchUser, matchName }]
 let cache = { user: "", at: 0, promise: null };
@@ -20,14 +21,17 @@ export function loadMyMatches(userId) {
 }
 
 export function useMyMatches(userId) {
+  const { config } = useApp();
+  const on = !!config.features?.santa; // Secret Santa can be switched off on the server
   const [matches, setMatches] = useState([]);
   useEffect(() => {
+    if (!on) return setMatches([]);
     let alive = true;
     loadMyMatches(userId).then((m) => alive && setMatches(m));
     return () => {
       alive = false;
     };
-  }, [userId]);
+  }, [userId, on]);
   return matches;
 }
 

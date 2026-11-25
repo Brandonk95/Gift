@@ -50,12 +50,12 @@ function EmailSettings() {
         <h2>Emails</h2>
         <p className="muted small">
           {config.smtpEnabled
-            ? "Choose which emails you get. Account emails (verification, password reset) and Secret Santa draws always come through."
+            ? `Choose which emails you get. Account emails (verification, password reset)${config.features?.santa ? " and Secret Santa draws" : ""} always come through.`
             : "Email isn't set up on this server yet, so none of these are sent right now."}
         </p>
       </div>
       <div className="check-list email-prefs">
-        {EMAIL_KINDS.map(([key, label, hint]) => (
+        {EMAIL_KINDS.filter(([key]) => key !== "santa" || config.features?.santa).map(([key, label, hint]) => (
           <label key={key} className="toggle">
             <input type="checkbox" checked={prefs[key] !== false} onChange={() => toggle(key)} />
             <span>

@@ -18,12 +18,15 @@ import { MINE, ownerNames, ownsList, partnerName } from "../lib/owners.js";
 
 // Occasions in the next 60 days: your lists, lists you follow, and Secret Santas
 function ComingUp({ lists, follows, userId }) {
+  const { config } = useApp();
+  const santaOn = !!config.features?.santa;
   const [exchanges, setExchanges] = useState([]);
   useEffect(() => {
+    if (!santaOn) return setExchanges([]);
     pb.send("/api/giftlist/exchanges")
       .then(setExchanges)
       .catch(() => {});
-  }, [userId]);
+  }, [userId, santaOn]);
 
   const events = useMemo(() => {
     const soon = (d) => {
@@ -143,7 +146,7 @@ function VerifyBanner() {
 }
 
 export default function Dashboard() {
-  const { user, notify } = useApp();
+  const { user, config, notify } = useApp();
   const navigate = useNavigate();
   const [lists, setLists] = useState(null);
   const [counts, setCounts] = useState({});
@@ -376,7 +379,13 @@ export default function Dashboard() {
         <div className="empty-hint">
           <span className="empty-hint-icon">💌</span>
           <p className="muted small">
-            When a friend shares a list with you and you open the link while logged in, it shows up here. Or <Link to="/groups">make a group</Link> for your family, and everyone's lists show up automatically.
+            When a friend shares a list with you and you open the link while logged in, it shows up here.
+            {config.features?.groups && (
+              <>
+                {" "}
+                Or <Link to="/groups">make a group</Link> for your family, and everyone's lists show up automatically.
+              </>
+            )}
           </p>
         </div>
       ) : (

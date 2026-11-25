@@ -7,7 +7,7 @@ const UNDO_MS = 6000;
 
 export function AppProvider({ children }) {
   const [user, setUser] = useState(pb.authStore.isValid ? pb.authStore.record : null);
-  const [config, setConfig] = useState({ appName: "Gift List", smtpEnabled: false, currency: "USD", photoSearch: false, reservationDays: 7 });
+  const [config, setConfig] = useState({ appName: "Gift List", smtpEnabled: false, currency: "USD", photoSearch: false, reservationDays: 7, features: null }); // features: null until the server says
   const [toast, setToast] = useState(null);
   const [prefs, setPrefsState] = useState(() => {
     const rec = pb.authStore.isValid ? pb.authStore.record : null;
@@ -79,10 +79,10 @@ export function AppProvider({ children }) {
     }
     pb.send("/api/giftlist/config", {})
       .then((c) => {
-        setConfig(c);
+        setConfig({ ...c, features: c.features || {} });
         if (c.appName) document.title = c.appName;
       })
-      .catch(() => {});
+      .catch(() => setConfig((c) => ({ ...c, features: c.features || {} })));
     return unsub;
   }, [notify]);
 

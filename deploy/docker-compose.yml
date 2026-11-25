@@ -46,6 +46,8 @@ services:
       SMTP_SENDER_NAME: GiftMe
       # Optional extras
       BRAVE_SEARCH_KEY: ""   # photo search in the gift editor (free key: brave.com/search/api)
+      FEATURE_SECRET_SANTA: "false"   # Secret Santa gift exchanges
+      FEATURE_GROUPS: "false"         # family groups
       DIGEST_HOUR: "0"       # hour (0-23) the nightly "new gifts" emails go out
       RESERVATION_DAYS: "7"  # how long a reservation lasts before it must be renewed
     labels:

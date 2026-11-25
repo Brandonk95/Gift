@@ -164,7 +164,7 @@ routerAdd("GET", "/manifest.webmanifest", (e) => {
     JSON.stringify({
       name,
       short_name: name.length > 12 ? name.slice(0, 12) : name,
-      description: "Wish lists, reservations and Secret Santa",
+      description: require(`${__hooks}/lib/features.js`).features().santa ? "Wish lists, reservations and Secret Santa" : "Wish lists that keep the surprise",
       start_url: "/",
       scope: "/",
       display: "standalone",
@@ -191,6 +191,7 @@ routerAdd("GET", "/api/giftlist/config", (e) => {
     currency: ($os.getenv("APP_CURRENCY") || "USD").trim().toUpperCase(),
     photoSearch: !!($os.getenv("BRAVE_SEARCH_KEY") || "").trim(),
     reservationDays: require(`${__hooks}/lib/util.js`).RESERVATION_DAYS,
+    features: require(`${__hooks}/lib/features.js`).features(),
   });
 });
 

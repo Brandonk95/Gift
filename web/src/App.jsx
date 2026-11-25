@@ -19,6 +19,17 @@ import Share from "./pages/Share.jsx";
 import { ConfirmEmail, ResetPassword, VerifyEmail } from "./pages/EmailAction.jsx";
 import { JoinCoOwner } from "./components/CoOwners.jsx";
 
+// Secret Santa and groups can be switched off on the server (pb_hooks/lib/features.js)
+function Feature({ name, children }) {
+  const { config } = useApp();
+  if (!config.features) return null; // still asking the server
+  if (!config.features[name]) {
+    const [label, is] = name === "santa" ? ["Secret Santa", "is"] : ["Groups", "are"];
+    return <NotFound title={`${label} ${is} taking a break`} message={`${label} ${is} turned off for now. Your lists and everything else work as usual.`} />;
+  }
+  return children;
+}
+
 function RequireAuth({ children }) {
   const { user } = useApp();
   const loc = useLocation();
@@ -57,38 +68,38 @@ export default function App() {
         <Route
           path="/exchanges"
           element={
-            <RequireAuth>
+            <Feature name="santa"><RequireAuth>
               <Exchanges />
-            </RequireAuth>
+            </RequireAuth></Feature>
           }
         />
         <Route
           path="/exchanges/:id"
           element={
-            <RequireAuth>
+            <Feature name="santa"><RequireAuth>
               <Exchange />
-            </RequireAuth>
+            </RequireAuth></Feature>
           }
         />
         <Route
           path="/groups"
           element={
-            <RequireAuth>
+            <Feature name="groups"><RequireAuth>
               <Groups />
-            </RequireAuth>
+            </RequireAuth></Feature>
           }
         />
         <Route
           path="/groups/:id"
           element={
-            <RequireAuth>
+            <Feature name="groups"><RequireAuth>
               <Group />
-            </RequireAuth>
+            </RequireAuth></Feature>
           }
         />
-        <Route path="/g/:token" element={<JoinGroup />} />
+        <Route path="/g/:token" element={<Feature name="groups"><JoinGroup /></Feature>} />
         <Route path="/o/:token" element={<JoinCoOwner />} />
-        <Route path="/x/:token" element={<JoinExchange />} />
+        <Route path="/x/:token" element={<Feature name="santa"><JoinExchange /></Feature>} />
         <Route path="/unsubscribe" element={<Unsubscribe />} />
         <Route path="/share" element={<Share />} />
         <Route

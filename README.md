@@ -166,6 +166,8 @@ applied every time the container starts.
 | `SMTP_AUTH_METHOD` | `PLAIN` (default) or `LOGIN` |
 | `SMTP_SENDER_ADDRESS` / `SMTP_SENDER_NAME` | The "From" for all emails (the name defaults to `APP_NAME`) |
 | `BRAVE_SEARCH_KEY` | Brave Search API key for photo search in the gift editor. Leave empty to hide it |
+| `FEATURE_SECRET_SANTA` | `true` turns on Secret Santa gift exchanges. Off by default: hidden in the app and refused by the API. Nothing is deleted, so turning it back on restores everything |
+| `FEATURE_GROUPS` | `true` turns on family groups. Off by default, the same way. Lists already shared through a group stay on people's dashboards |
 | `TZ` | Time zone for the nightly follower emails, e.g. `America/Denver` (default UTC) |
 | `DIGEST_HOUR` | Hour (0–23) to send follower emails and occasion reminders (default `0`, midnight) |
 | `RESERVATION_DAYS` | How long a reservation lasts before it must be renewed (default `7`) |
@@ -257,8 +259,9 @@ server, never your real one. They need:
 - `TEST_MAIL_DIR`: where the mail catcher writes (default `tests/.mail`)
 
 Start the mail catcher with `node tests/mailsink.cjs`, then start the test server with
-`SMTP_HOST=127.0.0.1 SMTP_PORT=2525 SMTP_TLS=false` and `DIGEST_HOUR` set to the current
-hour (the occasion reminder test runs the nightly job).
+`SMTP_HOST=127.0.0.1 SMTP_PORT=2525 SMTP_TLS=false`, `DIGEST_HOUR` set to the current
+hour (the occasion reminder test runs the nightly job), and `FEATURE_SECRET_SANTA=true
+FEATURE_GROUPS=true` so those tests can run.
 
 The phone notification test stands in for a push service on port 2526: start the test
 server with `PUSH_TEST_ENDPOINT=http://127.0.0.1:2526/` (or

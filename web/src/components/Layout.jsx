@@ -30,11 +30,11 @@ export function Avatar({ user, size = 32 }) {
   );
 }
 
-const NAV = [
+const ALL_NAV = [
   { to: "/", icon: ListChecks, label: "Lists", end: true, also: /^\/(lists|s)\// },
   { to: "/shopping", icon: ShoppingBag, label: "Shopping" },
-  { to: "/groups", icon: Users, label: "Groups", also: /^\/g\// },
-  { to: "/exchanges", icon: Shuffle, label: "Secret Santa", short: "Santa" },
+  { to: "/groups", icon: Users, label: "Groups", also: /^\/g\//, feature: "groups" },
+  { to: "/exchanges", icon: Shuffle, label: "Secret Santa", short: "Santa", feature: "santa" },
 ];
 
 export default function Layout({ children }) {
@@ -43,6 +43,8 @@ export default function Layout({ children }) {
   const dark = isDark(prefs.mode);
   const { pathname } = useLocation();
   // a list page counts as being in "Lists"
+  // Secret Santa and groups can be switched off on the server (lib/features.js there)
+  const NAV = ALL_NAV.filter((n) => !n.feature || config.features?.[n.feature]);
   const cls = (base, also) => ({ isActive }) => `${base} ${isActive || (also && also.test(pathname)) ? "active" : ""}`;
 
   const logout = () => {
